@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<title>Carte Hub'Eau — démonstration</title>
+<style>
+  /* Home Assistant fournit ha-card et ses variables ; hors de HA, on les
+     reproduit pour pouvoir regarder la carte sans lancer le serveur. */
+  body { margin: 0; padding: 28px; background: #111418;
+         font-family: Roboto, system-ui, sans-serif; color: #e1e1e1;
+         display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+  ha-card { display: block; background: #1c1f24; border-radius: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.4); }
+  .col { width: 340px; }
+  h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em;
+       opacity: .5; margin: 0 0 8px; font-weight: 600; }
+</style></head><body>
+<script type="module" src="./hubeau-card.js"></script>
+<script type="module">
+  const CAS = [
+    ["Étiage — état réel du Lez", { h: "0.272", regime: "etiage", rang: "8.7",
+      debit: "0.247", tendance: "0.006", age: "52" }],
+    ["Normal", { h: "0.62", regime: "normal", rang: "75", debit: "2.03",
+      tendance: "1.4", age: "12" }],
+    ["Fort", { h: "1.10", regime: "fort", rang: "96.2", debit: "11.5",
+      tendance: "8.6", age: "9" }],
+    ["Crue — 29 septembre 2014", { h: "3.65", regime: "crue_majeure",
+      rang: "99.97", debit: "80.2", tendance: "42.0", age: "6" }],
+    ["Capteur en panne — le Lirou", { h: "-0.002", regime: "etiage_severe",
+      rang: "0", debit: "2.65", tendance: "0", age: "8", fige: true }],
+  ];
+
+  const etats = (c) => ({
+    "sensor.lez_hauteur_d_eau": {
+      state: c.h, attributes: {
+        friendly_name: "Le Lez à Montferrier-sur-Lez [Lavalette] Hauteur d'eau",
+        unit_of_measurement: "m", lecture: c.fige ? "mesure douteuse"
+          : (c.rang > 99 ? "dépasse environ un jour sur 1000"
+             : c.rang > 50 ? "au-dessus de la médiane" : "dans le quart le plus bas"),
+        mediane_30_ans: 0.443, maximum_connu: 4.403,
+        maximum_connu_le: "2014-10-06", annees_de_reference: 30.5,
+        regime: c.regime, rang_percentile: Number(c.rang), capteur_fige: !!c.fige,
+      }},
+    "sensor.lez_debit": { state: c.debit, attributes: {} },
+    "sensor.lez_regime": { state: c.regime, attributes: {} },
+    "sensor.lez_rang_sur_la_chronique": { state: c.rang, attributes: {} },
+    "sensor.lez_tendance": { state: c.tendance, attributes: {} },
+    "sensor.lez_age_de_la_mesure": { state: c.age, attributes: {} },
+    "binary_sensor.lez_capteur_fige": { state: c.fige ? "on" : "off", attributes: {} },
+    "binary_sensor.lez_donnees_obsoletes": { state: "off", attributes: {} },
+  });
+
+  customElements.whenDefined("hubeau-card").then(() => {
+    for (const [titre, cas] of CAS) {
+      const col = document.createElement("div");
+      col.className = "col";
+      col.innerHTML = `<h2>${titre}</h2>`;
+      const carte = document.createElement("hubeau-card");
+      carte.setConfig({ hauteur: "sensor.lez_hauteur_d_eau" });
+      col.appendChild(carte);
+      document.body.appendChild(col);
+      carte.hass = { states: etats(cas) };
+    }
+  });
+</script>
+</body></html>
