@@ -193,6 +193,20 @@ class CoordinateurHubEau(DataUpdateCoordinator[EtatStation]):
         self._stats_chargees = True
         self._stats_le = dt_util.utcnow()
 
+    # -- versement de la chronique ------------------------------------------
+
+    async def historique_deja_verse(self) -> bool:
+        """Le versement n'a lieu qu'une fois : il porte sur des milliers de
+        journees, et Home Assistant conserve ses statistiques indefiniment."""
+        cache = await self._store.async_load() or {}
+        return bool(cache.get("historique_verse"))
+
+    async def marquer_historique_verse(self, resultats: dict) -> None:
+        cache = await self._store.async_load() or {}
+        cache["historique_verse"] = {
+            "le": dt_util.utcnow().isoformat(), "jours": resultats}
+        await self._store.async_save(cache)
+
     # -- cycle courant ------------------------------------------------------
 
     async def _async_update_data(self) -> EtatStation:

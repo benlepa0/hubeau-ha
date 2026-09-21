@@ -16,7 +16,7 @@
  * Aucune dependance, aucune compilation : un element personnalise et du SVG.
  */
 
-const VERSION = "0.1.2";
+const VERSION = "0.2.3";
 
 /* Reperes de l'echelle : percentile -> position verticale, de 0 en bas a 1
  * en haut. Les valeurs sont resserrees vers le haut parce que les crues sont
@@ -83,9 +83,62 @@ class CarteHubEau extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
     this._rendre();
+    this._septJours();
   }
 
   getCardSize() { return 5; }
+
+  /* Les extremes des sept derniers jours viennent des statistiques long terme
+   * du recorder, et non d'un parcours de l'historique detaille : celui-ci est
+   * purge au bout de quelques jours, alors que les statistiques sont
+   * conservees indefiniment. C'est aussi la table que l'integration alimente
+   * avec la chronique de la station.
+   *
+   * L'appel est rare -- au plus une fois par quart d'heure -- car il traverse
+   * la base de donnees. */
+  async _septJours() {
+    if (!this._hass?.callWS) return;
+    const maintenant = Date.now();
+    if (this._septLe && maintenant - this._septLe < 900000) return;
+    this._septLe = maintenant;
+    const depuis = new Date(maintenant - 7 * 86400000).toISOString();
+    try {
+      const rep = await this._hass.callWS({
+        type: "recorder/statistics_during_period",
+        start_time: depuis,
+        statistic_ids: [this._cfg.hauteur],
+        period: "day",
+        types: ["min", "max", "mean"],
+      });
+      const serie = rep?.[this._cfg.hauteur] || [];
+      if (!serie.length) { this._sept = null; return; }
+      const val = (k) => serie.map((x) => x[k]).filter((v) => v != null);
+      const mins = val("min"), maxs = val("max"), moys = val("mean");
+      this._sept = {
+        min: mins.length ? Math.min(...mins) : null,
+        max: maxs.length ? Math.max(...maxs) : null,
+        // Moyenne des moyennes journalieres : les jours ont le meme poids,
+        // ce qui est ce qu'on attend d'une moyenne sur sept jours.
+        moy: moys.length ? moys.reduce((a, b) => a + b, 0) / moys.length : null,
+        jours: serie.length,
+      };
+    } catch (err) {
+      this._sept = null;
+    }
+    this._afficherSept();
+  }
+
+  _afficherSept() {
+    const zone = this._racine?.querySelector(".sept");
+    if (!zone) return;
+    const s = this._sept;
+    zone.classList.toggle("vide", !s || s.min == null);
+    if (!s || s.min == null) return;
+    const f = (v) => (v == null ? "—" : `${nombre(v, 2)} m`);
+    this._racine.querySelector("#s-min").textContent = f(s.min);
+    this._racine.querySelector("#s-moy").textContent = f(s.moy);
+    this._racine.querySelector("#s-max").textContent = f(s.max);
+  }
 
   /* -- construction, une seule fois ------------------------------------- */
 
@@ -126,12 +179,16 @@ class CarteHubEau extends HTMLElement {
         .eau svg { position: absolute; top: -13px; left: 0;
                    width: 200%; height: 16px; }
 
-        /* Trois vagues d'amplitudes et de vitesses differentes. Une seule
-           onde regulliere fait mecanique ; trois qui se croisent font une
-           surface qui respire. */
-        .v { animation: glisse var(--t, 9s) linear infinite; }
-        .v2 { animation-duration: var(--t2, 13s); animation-direction: reverse; }
-        .v3 { animation-duration: var(--t3, 19s); }
+        /* Deux sinusoides franches, l'une glissant a contresens de l'autre.
+           Une troisieme onde avait ete essayee : a cette taille, les
+           interferences se lisent comme du bruit plutot que comme une
+           surface. */
+        /* Nommees "onde" et non "v" : la classe v designe deja les valeurs
+           chiffrees du pied de carte, qui heritaient donc du glissement des
+           vagues et defilaient vers la gauche en boucle, sans raison
+           apparente. */
+        .onde { animation: glisse var(--t, 9s) linear infinite; }
+        .onde2 { animation-duration: var(--t2, 13s); animation-direction: reverse; }
         @keyframes glisse { to { transform: translateX(-50%); } }
 
         /* L'ecoulement : des trainees floues qui filent de gauche a droite,
@@ -152,38 +209,40 @@ class CarteHubEau extends HTMLElement {
           100% { transform: translateX(calc(100vw + 30%)); opacity: 0; }
         }
 
-        /* Les bulles montent en derivant : une remontee strictement verticale
-           trahit tout de suite l'artifice. */
-        .bulles { position: absolute; inset: 0; }
-        /* La montee anime la propriete bottom, et non un translateY en
+        /* Les bulles derivent vers la droite, portees par le courant.
+           Les faire monter etait un contresens : dans une riviere, ce qui
+           renseigne sur la vitesse est ce qui defile, pas ce qui remonte. Une
+           legere ascension et une ondulation suffisent a eviter la ligne
+           droite, qui ferait mecanique.
+
+           La derive anime la propriete left, et non un translateX en
            pourcentage : un pourcentage de translation se rapporte a la taille
-           de l'element, pas a celle de son conteneur. Les bulles, hautes de
-           quelques pixels, montaient donc de quelques pixels et restaient
-           collees au fond. Un bottom en pourcentage, lui, se rapporte bien au
-           bloc d'eau. La derive laterale reste en translateX, ou le
-           pourcentage n'entre pas en jeu puisqu'elle est exprimee en pixels. */
+           de l'element, pas a celle de son conteneur. Des bulles larges de
+           quelques pixels ne parcouraient ainsi que quelques pixels. */
+        .bulles { position: absolute; inset: 0; }
         .bulle {
-          position: absolute; bottom: 0; border-radius: 50%;
+          position: absolute; border-radius: 50%;
           background: radial-gradient(circle at 34% 28%,
                       rgba(255,255,255,.95), rgba(255,255,255,.45) 55%,
                       rgba(255,255,255,.12) 100%);
-          box-shadow: inset 0 0 0 .5px rgba(255,255,255,.5);
-          animation: monte var(--m, 6s) ease-in infinite;
+          box-shadow: inset 0 0 0 .5px rgba(255,255,255,.45);
+          animation: derive var(--d, 7s) linear infinite;
         }
-        @keyframes monte {
-          0%   { bottom: -2%;  transform: translateX(0)    scale(.65); opacity: 0; }
-          10%  { opacity: .9; }
-          35%  { transform: translateX(5px)  scale(1); }
-          65%  { transform: translateX(-4px) scale(1.05); }
-          88%  { opacity: .7; }
-          100% { bottom: 102%; transform: translateX(3px) scale(1.1); opacity: 0; }
+        @keyframes derive {
+          0%   { left: -8%;  transform: translateY(0)     scale(.75); opacity: 0; }
+          8%   { opacity: .95; }
+          35%  { transform: translateY(-5px) scale(1); }
+          65%  { transform: translateY(-9px)  scale(1.02); }
+          92%  { opacity: .8; }
+          100% { left: 106%; transform: translateY(-15px) scale(1.06); opacity: 0; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .v, .fil, .bulle { animation: none; }
+          .onde, .fil, .bulle { animation: none; }
           .fil, .bulle { opacity: .35; }
+          .bulle { left: 45%; }
         }
-        :host([sans-animation]) .v,
+        :host([sans-animation]) .onde,
         :host([sans-animation]) .fil,
         :host([sans-animation]) .bulle { animation: none; }
         :host([sans-animation]) .fil,
@@ -211,6 +270,14 @@ class CarteHubEau extends HTMLElement {
 
         .pied { display: grid; grid-template-columns: repeat(3, 1fr);
                 border-top: 1px solid var(--divider-color, rgba(255,255,255,.12)); }
+        .sept { position: relative; }
+        .sept::before {
+          content: "7 derniers jours"; position: absolute; top: 5px; left: 0;
+          right: 0; text-align: center; font-size: .58rem; opacity: .45;
+          text-transform: uppercase; letter-spacing: .06em;
+        }
+        .sept .case { padding-top: 22px; }
+        .sept.vide { display: none; }
         .case { padding: 9px 6px; text-align: center; }
         .case + .case { border-left: 1px solid
                         var(--divider-color, rgba(255,255,255,.12)); }
@@ -230,11 +297,10 @@ class CarteHubEau extends HTMLElement {
         <div class="scene">
           <div class="eau">
             <svg viewBox="0 0 600 16" preserveAspectRatio="none">
-              <path class="v v3" opacity=".3"  fill="var(--eau)"></path>
-              <path class="v v2" opacity=".45" fill="var(--eau)"></path>
-              <path class="v"                  fill="var(--eau)"></path>
-              <path class="v" fill="none" stroke="#fff" stroke-width="1"
-                    opacity=".45"></path>
+              <path class="onde onde2" opacity=".5" fill="var(--eau)"></path>
+              <path class="onde"                     fill="var(--eau)"></path>
+              <path class="onde" fill="none" stroke="#fff" stroke-width="1.1"
+                    opacity=".5"></path>
             </svg>
             <div class="flux"></div>
             <div class="bulles"></div>
@@ -251,14 +317,19 @@ class CarteHubEau extends HTMLElement {
           <div class="case"><div class="k">Tendance</div><div class="v" id="c-tend">—</div></div>
           <div class="case"><div class="k">Mesurée à</div><div class="v" id="c-age">—</div></div>
         </div>
+        <div class="pied sept vide">
+          <div class="case"><div class="k">Minimum</div><div class="v" id="s-min">—</div></div>
+          <div class="case"><div class="k">Moyenne</div><div class="v" id="s-moy">—</div></div>
+          <div class="case"><div class="k">Maximum</div><div class="v" id="s-max">—</div></div>
+        </div>
       </ha-card>`;
 
     const chemins = this._racine.querySelectorAll(".eau path");
-    // Quatre traces : trois nappes d'amplitudes decroissantes et une crete
-    // claire qui souligne la surface. Chaque onde est dessinee sur deux
-    // periodes, si bien qu'un glissement de moitie boucle sans saut.
-    [[5.5, 0], [4, 90], [2.5, 210], [5.5, 0]].forEach(([a, dec], i) => {
-      chemins[i].setAttribute("d", this._onde(a, dec, i === 3));
+    // Trois traces : deux nappes sinusoidales et une crete claire qui suit la
+    // premiere. Chaque onde couvre deux periodes, si bien qu'un glissement de
+    // moitie boucle sans saut visible.
+    [[6, 0], [4.5, 150], [6, 0]].forEach(([a, dec], i) => {
+      chemins[i].setAttribute("d", this._onde(a, dec, i === 2));
     });
 
     const flux = this._racine.querySelector(".flux");
@@ -277,19 +348,29 @@ class CarteHubEau extends HTMLElement {
     });
 
     const bulles = this._racine.querySelector(".bulles");
-    for (let i = 0; i < 18; i++) {
+    // Profondeur, taille, part de vitesse. Une veine d'eau ne va pas a la
+    // meme allure partout : elle est freinee par le fond et par les berges,
+    // et la surface file plus vite. Les bulles profondes trainent donc, ce
+    // qui donne au courant son epaisseur.
+    const GRAINS = [
+      [10, 5.5, 1.00], [17, 3.0, 0.95], [24, 7.0, 0.92], [32, 4.0, 0.88],
+      [39, 2.5, 0.85], [47, 6.0, 0.80], [54, 3.5, 0.76], [61, 5.0, 0.72],
+      [68, 2.5, 0.68], [74, 4.5, 0.63], [80, 3.0, 0.58], [86, 6.0, 0.54],
+      [91, 2.5, 0.50], [95, 4.0, 0.46],
+    ];
+    GRAINS.forEach(([profondeur, taille, part], i) => {
       const b = document.createElement("div");
-      const taille = 3.5 + (i % 5) * 1.9;
       b.className = "bulle";
-      b.style.left = `${3 + (i * 5.3) % 94}%`;
+      b.style.top = `${profondeur}%`;
       b.style.width = `${taille}px`;
       b.style.height = `${taille}px`;
-      // Une bulle large monte plus vite qu'une fine, et chacune part a son
-      // heure pour eviter l'effet de rideau.
-      b.style.setProperty("--m", `${(8.5 - taille * 0.45).toFixed(1)}s`);
-      b.style.animationDelay = `${-(i * 0.83).toFixed(2)}s`;
+      b.dataset.part = part;
+      // Un depart etale dans le temps, sinon toutes les bulles traversent en
+      // rang, comme un rideau.
+      b.style.animationDelay = `${-(i * 0.77).toFixed(2)}s`;
+      b.style.opacity = 0.9 - (profondeur / 100) * 0.45;
       bulles.appendChild(b);
-    }
+    });
 
     if (!this._cfg.animations) this.setAttribute("sans-animation", "");
   }
@@ -359,11 +440,16 @@ class CarteHubEau extends HTMLElement {
       duree = 8 - t * 6.5;
     }
     carte.style.setProperty("--vitesse", `${duree.toFixed(2)}s`);
+    // Chaque bulle recoit sa propre duree : celles du fond mettent presque
+    // deux fois plus longtemps a traverser que celles de surface.
+    for (const b of this._racine.querySelectorAll(".bulle")) {
+      const part = Number(b.dataset.part) || 1;
+      b.style.setProperty("--d", `${(duree / part).toFixed(2)}s`);
+    }
     // Les vagues suivent le courant, mais de loin : une surface n'accelere
     // pas autant que la veine d'eau qui la porte.
     carte.style.setProperty("--t",  `${(7 + duree * 0.5).toFixed(2)}s`);
     carte.style.setProperty("--t2", `${(11 + duree * 0.7).toFixed(2)}s`);
-    carte.style.setProperty("--t3", `${(17 + duree * 0.9).toFixed(2)}s`);
 
     this._reperes(attrs);
     this._pied(debit);

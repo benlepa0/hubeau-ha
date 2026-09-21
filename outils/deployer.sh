@@ -22,6 +22,10 @@ find "$ICI/custom_components/hubeau" -name '__pycache__' -type d -exec rm -rf {}
 docker exec "$CONTENEUR" rm -rf /config/custom_components/hubeau
 docker cp "$ICI/custom_components/hubeau" "$CONTENEUR:/config/custom_components/" >/dev/null
 
+echo "-- controles de la carte"
+node --check "$ICI/carte/hubeau-card.js"
+python3 "$ICI/outils/verifier_carte.py" "$ICI/carte/hubeau-card.js"
+
 echo "-- carte"
 docker exec "$CONTENEUR" mkdir -p /config/www/community/hubeau-card
 docker cp "$ICI/carte/hubeau-card.js" \

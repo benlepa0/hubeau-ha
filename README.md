@@ -34,6 +34,28 @@ mesurer. Deux contrôles la démasquent :
   débit franc signale une station hors d'eau. Ce même Lirou affiche 2,65 m³/s
   pour une hauteur de **−0,002 m**.
 
+## La chronique versée dans Home Assistant
+
+Trente ans de mesures ne serviraient qu'une fois — à calculer onze percentiles —
+puis dormiraient dans un fichier de cache, pendant que Home Assistant
+n'afficherait que ce qu'il a lui-même enregistré depuis l'installation.
+
+L'intégration **verse donc la chronique journalière dans les statistiques long
+terme** du `recorder`, conservées indéfiniment. La station apparaît alors dans
+les graphiques natifs comme si elle y avait toujours été suivie. Sur le Lez à
+Lavalette : **369 mois depuis décembre 1995**, une pointe de hauteur à 4,40 m
+et un débit instantané maximal de **499,27 m³/s**.
+
+Le débit dispose des trois valeurs journalières — moyenne, minimum, maximum —
+et l'écart entre elles est parlant : le 29 septembre 2014, la moyenne du jour
+valait 80 m³/s pour une pointe à 366. La hauteur n'est publiée qu'en maximum
+journalier ; les trois courbes s'y superposent donc, ce qui signale à l'œil
+qu'il n'y a qu'une valeur par jour. C'est d'ailleurs celle qui compte,
+puisque ce sont les pointes qui font les crues.
+
+Le versement n'a lieu qu'une fois, en tâche de fond, et ne retarde pas le
+démarrage.
+
 ## Entités
 
 Par station suivie :
