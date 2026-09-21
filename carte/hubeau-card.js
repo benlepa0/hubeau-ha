@@ -16,7 +16,7 @@
  * Aucune dependance, aucune compilation : un element personnalise et du SVG.
  */
 
-const VERSION = "0.2.3";
+const VERSION = "0.3.0";
 
 /* Reperes de l'echelle : percentile -> position verticale, de 0 en bas a 1
  * en haut. Les valeurs sont resserrees vers le haut parce que les crues sont
@@ -176,13 +176,12 @@ class CarteHubEau extends HTMLElement {
           transition: height 1.2s cubic-bezier(.4,0,.2,1);
           overflow: hidden;
         }
-        .eau svg { position: absolute; top: -13px; left: 0;
-                   width: 200%; height: 16px; }
+        .eau svg { position: absolute; top: -17px; left: 0;
+                   width: 200%; height: 20px; }
 
-        /* Deux sinusoides franches, l'une glissant a contresens de l'autre.
-           Une troisieme onde avait ete essayee : a cette taille, les
-           interferences se lisent comme du bruit plutot que comme une
-           surface. */
+        /* Deux sinusoides, l'une glissant a contresens de l'autre. Rien de
+           plus : une troisieme onde puis une crete blanche avaient ete
+           essayees, et alourdissaient le trace sans le rendre plus vivant. */
         /* Nommees "onde" et non "v" : la classe v designe deja les valeurs
            chiffrees du pied de carte, qui heritaient donc du glissement des
            vagues et defilaient vers la gauche en boucle, sans raison
@@ -259,6 +258,13 @@ class CarteHubEau extends HTMLElement {
         /* En haut, et non en bas : l'eau monte, et un texte place en bas de
            cadre finissait noye des que le niveau depassait l'etiage. */
         .valeurs { position: absolute; left: 16px; top: 14px; right: 118px; }
+        /* Les zones cliquables ouvrent la fiche de l'entite, d'ou l'on accede
+           a l'historique et aux statistiques long terme. */
+        .cliquable { cursor: pointer; border-radius: 8px;
+                     transition: background .15s; }
+        .cliquable:hover { background: rgba(255,255,255,.08); }
+        .cliquable:focus-visible { outline: 2px solid var(--accent);
+                                   outline-offset: 2px; }
         .grande { font-size: 2.5rem; font-weight: 300; line-height: 1;
                   font-variant-numeric: tabular-nums;
                   text-shadow: 0 1px 6px rgba(0,0,0,.45); }
@@ -296,40 +302,40 @@ class CarteHubEau extends HTMLElement {
         </div>
         <div class="scene">
           <div class="eau">
-            <svg viewBox="0 0 600 16" preserveAspectRatio="none">
-              <path class="onde onde2" opacity=".5" fill="var(--eau)"></path>
-              <path class="onde"                     fill="var(--eau)"></path>
-              <path class="onde" fill="none" stroke="#fff" stroke-width="1.1"
-                    opacity=".5"></path>
+            <svg viewBox="0 0 600 20" preserveAspectRatio="none">
+              <path class="onde"       opacity=".55" fill="var(--eau)"></path>
+              <path class="onde onde2" opacity=".35" fill="var(--eau)"></path>
             </svg>
             <div class="flux"></div>
             <div class="bulles"></div>
           </div>
           <div class="reperes"></div>
           <div class="valeurs">
-            <div class="grande"></div>
+            <div class="grande cliquable" data-cible="hauteur" tabindex="0"
+                 role="button" title="Voir l'historique de la hauteur"></div>
             <div class="lecture"></div>
           </div>
         </div>
         <div class="avert cache"></div>
         <div class="pied">
-          <div class="case"><div class="k">Débit</div><div class="v" id="c-debit">—</div></div>
+          <div class="case cliquable" data-cible="debit" tabindex="0" role="button"
+               title="Voir l'historique du débit"><div class="k">Débit</div><div class="v" id="c-debit">—</div></div>
           <div class="case"><div class="k">Tendance</div><div class="v" id="c-tend">—</div></div>
           <div class="case"><div class="k">Mesurée à</div><div class="v" id="c-age">—</div></div>
         </div>
         <div class="pied sept vide">
-          <div class="case"><div class="k">Minimum</div><div class="v" id="s-min">—</div></div>
-          <div class="case"><div class="k">Moyenne</div><div class="v" id="s-moy">—</div></div>
-          <div class="case"><div class="k">Maximum</div><div class="v" id="s-max">—</div></div>
+          <div class="case cliquable" data-cible="hauteur" tabindex="0" role="button"><div class="k">Minimum</div><div class="v" id="s-min">—</div></div>
+          <div class="case cliquable" data-cible="hauteur" tabindex="0" role="button"><div class="k">Moyenne</div><div class="v" id="s-moy">—</div></div>
+          <div class="case cliquable" data-cible="hauteur" tabindex="0" role="button"><div class="k">Maximum</div><div class="v" id="s-max">—</div></div>
         </div>
       </ha-card>`;
 
     const chemins = this._racine.querySelectorAll(".eau path");
-    // Trois traces : deux nappes sinusoidales et une crete claire qui suit la
-    // premiere. Chaque onde couvre deux periodes, si bien qu'un glissement de
-    // moitie boucle sans saut visible.
-    [[6, 0], [4.5, 150], [6, 0]].forEach(([a, dec], i) => {
-      chemins[i].setAttribute("d", this._onde(a, dec, i === 2));
+    // Deux sinusoides, dessinees chacune sur deux periodes : un glissement de
+    // moitie ramene donc exactement au motif de depart, sans saut a la
+    // reprise de la boucle.
+    [[10, 0], [7, 30]].forEach(([a, dec], i) => {
+      chemins[i].setAttribute("d", this._onde(a, dec));
     });
 
     const flux = this._racine.querySelector(".flux");
@@ -372,20 +378,42 @@ class CarteHubEau extends HTMLElement {
       bulles.appendChild(b);
     });
 
+    /* Ouvrir la fiche d'une entite depuis la carte.
+     *
+     * Home Assistant ecoute l'evenement hass-more-info sur le document ; il
+     * doit donc traverser la frontiere du shadow DOM, d'ou composed a vrai.
+     * Sans cela l'evenement resterait enferme dans la carte et rien ne
+     * s'ouvrirait. */
+    const ouvrir = (cible) => {
+      const entityId = this._cfg[cible];
+      if (!entityId || !this._hass?.states?.[entityId]) return;
+      this.dispatchEvent(new CustomEvent("hass-more-info", {
+        detail: { entityId }, bubbles: true, composed: true,
+      }));
+    };
+    for (const el of this._racine.querySelectorAll(".cliquable")) {
+      el.addEventListener("click", () => ouvrir(el.dataset.cible));
+      el.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          ouvrir(el.dataset.cible);
+        }
+      });
+    }
+
     if (!this._cfg.animations) this.setAttribute("sans-animation", "");
   }
 
-  _onde(amplitude, decalage, ligneSeule = false) {
+  _onde(amplitude, decalage) {
     // Le trace couvre deux periodes de 300 unites sur les 600 du cadre : un
     // glissement de moitie ramene donc exactement au motif de depart, sans
     // saut visible a la reprise de la boucle.
-    const base = 16 - amplitude;
     let d = "";
     for (let x = 0; x <= 600; x += 5) {
-      const y = base + Math.sin(((x + decalage) / 300) * Math.PI * 2) * amplitude;
+      const y = amplitude + Math.sin(((x + decalage) / 300) * Math.PI * 2) * amplitude;
       d += `${x === 0 ? "M" : "L"} ${x} ${y.toFixed(2)} `;
     }
-    return ligneSeule ? d : `${d} L 600 16 L 0 16 Z`;
+    return `${d} L 600 20 L 0 20 Z`;
   }
 
   /* -- mise a jour ------------------------------------------------------- */

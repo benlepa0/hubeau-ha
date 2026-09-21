@@ -17,10 +17,9 @@ la moitié du temps, ce qui rend l'étiage aussi lisible qu'une crue.
 ## Animations
 
 - **le niveau** monte et descend sur 1,2 s, en transition douce ;
-- **les vagues** : deux sinusoïdes franches, l'une glissant à contresens de
-  l'autre, plus une crête claire qui souligne la surface. Une troisième onde
-  avait été essayée : à cette taille, les interférences se lisent comme du
-  bruit plutôt que comme une surface ;
+- **les vagues** : deux sinusoïdes, l'une glissant à contresens de l'autre.
+  Rien de plus — une troisième onde puis une crête blanche ont été essayées,
+  et alourdissaient le tracé sans le rendre plus vivant ;
 - **l'écoulement** : des traînées floues filent de gauche à droite, plus
   longues et plus rapides près de la surface, et s'estompent en profondeur ;
 - **les bulles** dérivent vers la droite, portées par le courant, avec une
@@ -59,6 +58,16 @@ romprait le littéral de gabarit qui le porte et empêcherait la carte de se
 charger. Les deux se sont produits.
 
 `prefers-reduced-motion` est respecté, et `animations: false` les coupe.
+
+## Clic vers l'historique
+
+La hauteur, le débit et les trois valeurs des sept derniers jours ouvrent la
+fiche de l'entité, d'où l'on accède à l'historique et aux statistiques long
+terme — dont la chronique versée par l'intégration.
+
+L'événement `hass-more-info` doit franchir la frontière du shadow DOM, d'où
+`composed: true` : sans cela il resterait enfermé dans la carte et rien ne
+s'ouvrirait.
 
 ## Configuration
 
