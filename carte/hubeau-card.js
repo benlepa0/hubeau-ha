@@ -16,7 +16,7 @@
  * Aucune dependance, aucune compilation : un element personnalise et du SVG.
  */
 
-const VERSION = "0.1.0";
+const VERSION = "0.1.1";
 
 /* Reperes de l'echelle : percentile -> position verticale, de 0 en bas a 1
  * en haut. Les valeurs sont resserrees vers le haut parce que les crues sont

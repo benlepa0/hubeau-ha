@@ -50,3 +50,22 @@ docker exec homeassistant rm -rf /config/custom_components/hubeau
 docker exec homeassistant rm -f /config/.storage/hubeau.Y320002001.statistiques
 # puis supprimer l'entrée dans Paramètres → Appareils et services
 ```
+
+## Déploiement de la carte
+
+`outils/deployer.sh` copie l'intégration et la carte, puis vérifie par somme
+de contrôle que ce qui est déployé correspond bien à la source.
+
+Ce script existe parce que l'inverse s'est produit : la carte avait été copiée
+une première fois, puis corrigée deux fois dans le dépôt **sans être
+redéployée**. La version en place était celle où les vagues étaient masquées
+par un rectangle de la même couleur et où les filets de courant, à 18 %
+d'opacité sur deux pixels et demi, restaient invisibles. Conclusion légitime de
+l'utilisateur : « je ne vois pas d'animation ».
+
+L'URL de la ressource Lovelace porte le numéro de version
+(`?v=0.1.1`). Sans lui, le navigateur et surtout l'application Companion
+servent indéfiniment le fichier qu'ils ont en cache.
+
+Pour vérifier la version réellement chargée, la console du navigateur affiche
+une ligne `HUBEAU-CARD 0.1.1` au chargement de la carte.
