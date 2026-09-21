@@ -63,9 +63,20 @@ par un rectangle de la même couleur et où les filets de courant, à 18 %
 d'opacité sur deux pixels et demi, restaient invisibles. Conclusion légitime de
 l'utilisateur : « je ne vois pas d'animation ».
 
-L'URL de la ressource Lovelace porte le numéro de version
-(`?v=0.1.1`). Sans lui, le navigateur et surtout l'application Companion
-servent indéfiniment le fichier qu'ils ont en cache.
+**Le nom du fichier porte le numéro de version**, et pas seulement l'URL.
+
+Home Assistant sert `/hacsfiles` avec `Cache-Control: max-age=2678400`, soit
+trente et un jours. Un simple paramètre `?v=` ne suffit pas à s'en défaire :
+l'application Companion continue de servir ce qu'elle détient, et l'on croit
+que rien n'a changé. Un nom différent, lui, n'a jamais été demandé — il ne
+peut pas être en cache. Le script de déploiement dépose donc
+`hubeau-card-<version>.js` à côté du nom fixe, ne garde que les trois
+dernières, et la ressource Lovelace pointe sur le nom versionné.
+
+La carte refuse aussi de s'enregistrer deux fois : si une version antérieure
+est déjà chargée dans la page, `customElements.define` lèverait une erreur et
+le reste du fichier ne s'exécuterait pas. Un avertissement le dit dans la
+console plutôt que d'échouer en silence.
 
 Pour vérifier la version réellement chargée, la console du navigateur affiche
 une ligne `HUBEAU-CARD 0.1.1` au chargement de la carte.

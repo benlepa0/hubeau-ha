@@ -16,7 +16,7 @@
  * Aucune dependance, aucune compilation : un element personnalise et du SVG.
  */
 
-const VERSION = "0.3.0";
+const VERSION = "0.3.1";
 
 /* Reperes de l'echelle : percentile -> position verticale, de 0 en bas a 1
  * en haut. Les valeurs sont resserrees vers le haut parce que les crues sont
@@ -555,18 +555,32 @@ class CarteHubEau extends HTMLElement {
   }
 }
 
-customElements.define("hubeau-card", CarteHubEau);
+/* Un element personnalise ne se definit qu'une fois par page. Si une version
+ * precedente a deja ete chargee -- ce qui arrive quand le navigateur sert une
+ * ressource depuis son cache tout en chargeant la nouvelle --, l'appel leve
+ * une erreur et le reste du fichier ne s'execute pas. On previent plutot que
+ * d'echouer en silence : c'est exactement le genre de panne qui donne
+ * l'impression que rien n'a change. */
+if (customElements.get("hubeau-card")) {
+  console.warn(
+    `[hubeau-card] une version est déjà chargée dans cette page ; ` +
+    `la version ${VERSION} ne sera pas prise en compte. ` +
+    `Rechargez en vidant le cache.`
+  );
+} else {
+  customElements.define("hubeau-card", CarteHubEau);
 
-window.customCards = window.customCards || [];
-window.customCards.push({
-  type: "hubeau-card",
-  name: "Hub'Eau",
-  description: "Niveau et débit d'un cours d'eau, situés dans sa chronique.",
-  preview: true,
-});
+  window.customCards = window.customCards || [];
+  window.customCards.push({
+    type: "hubeau-card",
+    name: "Hub'Eau",
+    description: "Niveau et débit d'un cours d'eau, situés dans sa chronique.",
+    preview: true,
+  });
 
-console.info(
-  `%c HUBEAU-CARD %c ${VERSION} `,
-  "color:#fff;background:#2196F3;font-weight:700",
-  "color:#2196F3;background:#fff"
-);
+  console.info(
+    `%c HUBEAU-CARD %c ${VERSION} `,
+    "color:#fff;background:#2196F3;font-weight:700",
+    "color:#2196F3;background:#fff"
+  );
+}
