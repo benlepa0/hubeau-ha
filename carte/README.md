@@ -17,13 +17,30 @@ la moitié du temps, ce qui rend l'étiage aussi lisible qu'une crue.
 ## Animations
 
 - **le niveau** monte et descend sur 1,2 s, en transition douce ;
-- **les vagues** sont deux ondes sinusoïdales décalées, glissant en sens
-  inverse, plus une crête claire qui souligne la surface. Sans elle, deux
-  nappes de la même couleur se confondent et l'eau paraît figée ;
-- **le courant** file d'autant plus vite que le débit est fort, sur une
-  échelle **logarithmique** : entre 0,2 et 200 m³/s il y a trois ordres de
-  grandeur, qu'une échelle linéaire écraserait. Une traversée dure de 8 s en
-  étiage à 1,5 s en crue.
+- **les vagues** : trois ondes d'amplitudes et de vitesses décroissantes,
+  dont une à contresens, plus une crête claire qui souligne la surface. Une
+  seule onde régulière fait mécanique ; trois qui se croisent font une surface
+  qui respire ;
+- **l'écoulement** : des traînées floues filent de gauche à droite, plus
+  longues et plus rapides près de la surface, et s'estompent en profondeur ;
+- **les bulles** montent en dérivant latéralement. Une remontée strictement
+  verticale trahirait l'artifice.
+
+La vitesse suit le débit sur une échelle **logarithmique** : entre 0,2 et
+200 m³/s il y a trois ordres de grandeur, qu'une échelle linéaire écraserait.
+Une traversée dure de 8 s en étiage à 1,5 s en crue. Les vagues suivent de
+loin — une surface n'accélère pas autant que la veine d'eau qui la porte.
+
+### Deux pièges rencontrés
+
+La scène est en HTML, et non en SVG : le SVG était étiré par
+`preserveAspectRatio="none"`, ce qui aurait transformé chaque bulle ronde en
+ellipse. Seules les vagues, qui gagnent à être étirées, restent en SVG.
+
+Et la montée des bulles anime la propriété `bottom`, pas un `translateY` en
+pourcentage : un pourcentage de translation se rapporte à la taille de
+l'élément, non à celle de son conteneur. Hautes de quelques pixels, les bulles
+montaient donc de quelques pixels et restaient collées au fond.
 
 `prefers-reduced-motion` est respecté, et `animations: false` les coupe.
 

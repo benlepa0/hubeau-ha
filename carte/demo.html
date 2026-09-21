@@ -44,6 +44,8 @@
     "sensor.lez_rang_sur_la_chronique": { state: c.rang, attributes: {} },
     "sensor.lez_tendance": { state: c.tendance, attributes: {} },
     "sensor.lez_age_de_la_mesure": { state: c.age, attributes: {} },
+    "sensor.lez_derniere_mesure": {
+      state: new Date(Date.now() - c.age * 60000).toISOString(), attributes: {} },
     "binary_sensor.lez_capteur_fige": { state: c.fige ? "on" : "off", attributes: {} },
     "binary_sensor.lez_donnees_obsoletes": { state: "off", attributes: {} },
   });

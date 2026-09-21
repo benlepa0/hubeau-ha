@@ -16,7 +16,7 @@
  * Aucune dependance, aucune compilation : un element personnalise et du SVG.
  */
 
-const VERSION = "0.1.1";
+const VERSION = "0.1.2";
 
 /* Reperes de l'echelle : percentile -> position verticale, de 0 en bas a 1
  * en haut. Les valeurs sont resserrees vers le haut parce que les crues sont
@@ -74,6 +74,7 @@ class CarteHubEau extends HTMLElement {
       rang: config.rang || `${base}_rang_sur_la_chronique`,
       tendance: config.tendance || `${base}_tendance`,
       age: config.age || `${base}_age_de_la_mesure`,
+      derniere: config.derniere || `${base}_derniere_mesure`,
       animations: config.animations !== false,
     };
     this._construire();
@@ -110,29 +111,83 @@ class CarteHubEau extends HTMLElement {
           text-transform: uppercase; padding: 3px 9px; border-radius: 999px;
           color: #fff; background: var(--accent); white-space: nowrap;
         }
-        .scene { position: relative; height: 210px; }
-        svg { display: block; width: 100%; height: 100%; }
+        .scene { position: relative; height: 215px; overflow: hidden; }
 
-        /* Les vagues glissent lateralement ; deux couches decalees suffisent
-           a donner l'illusion d'une surface qui respire. */
-        .vague { animation: glisse var(--duree, 7s) linear infinite; }
-        .vague2 { animation: glisse var(--duree2, 11s) linear infinite reverse; }
+        /* La masse d'eau : un bloc pose au fond, dont la hauteur suit le rang. */
+        .eau {
+          position: absolute; left: 0; right: 0; bottom: 0;
+          background: linear-gradient(180deg,
+                      color-mix(in srgb, var(--eau) 92%, #fff) 0%,
+                      var(--eau) 45%,
+                      color-mix(in srgb, var(--eau) 78%, #000) 100%);
+          transition: height 1.2s cubic-bezier(.4,0,.2,1);
+          overflow: hidden;
+        }
+        .eau svg { position: absolute; top: -13px; left: 0;
+                   width: 200%; height: 16px; }
+
+        /* Trois vagues d'amplitudes et de vitesses differentes. Une seule
+           onde regulliere fait mecanique ; trois qui se croisent font une
+           surface qui respire. */
+        .v { animation: glisse var(--t, 9s) linear infinite; }
+        .v2 { animation-duration: var(--t2, 13s); animation-direction: reverse; }
+        .v3 { animation-duration: var(--t3, 19s); }
         @keyframes glisse { to { transform: translateX(-50%); } }
 
-        /* Le courant : des traits qui filent dans la masse d'eau, d'autant
-           plus vite que le debit est fort. */
-        .courant { animation: file var(--vitesse, 6s) linear infinite; }
-        @keyframes file { from { transform: translateX(-20%); }
-                          to   { transform: translateX(120%); } }
+        /* L'ecoulement : des trainees floues qui filent de gauche a droite,
+           d'autant plus vite que le debit est fort. */
+        .flux { position: absolute; inset: 0; }
+        .fil {
+          position: absolute; height: 4px; border-radius: 4px;
+          background: linear-gradient(90deg, transparent 0%,
+                      rgba(255,255,255,.9) 45%, rgba(255,255,255,.95) 60%,
+                      transparent 100%);
+          filter: blur(1.2px);
+          animation: file var(--vitesse, 7s) linear infinite;
+        }
+        @keyframes file {
+          0%   { transform: translateX(-30%); opacity: 0; }
+          12%  { opacity: 1; }
+          88%  { opacity: 1; }
+          100% { transform: translateX(calc(100vw + 30%)); opacity: 0; }
+        }
 
-        .montee { transition: transform 1.2s cubic-bezier(.4,0,.2,1); }
+        /* Les bulles montent en derivant : une remontee strictement verticale
+           trahit tout de suite l'artifice. */
+        .bulles { position: absolute; inset: 0; }
+        /* La montee anime la propriete bottom, et non un translateY en
+           pourcentage : un pourcentage de translation se rapporte a la taille
+           de l'element, pas a celle de son conteneur. Les bulles, hautes de
+           quelques pixels, montaient donc de quelques pixels et restaient
+           collees au fond. Un bottom en pourcentage, lui, se rapporte bien au
+           bloc d'eau. La derive laterale reste en translateX, ou le
+           pourcentage n'entre pas en jeu puisqu'elle est exprimee en pixels. */
+        .bulle {
+          position: absolute; bottom: 0; border-radius: 50%;
+          background: radial-gradient(circle at 34% 28%,
+                      rgba(255,255,255,.95), rgba(255,255,255,.45) 55%,
+                      rgba(255,255,255,.12) 100%);
+          box-shadow: inset 0 0 0 .5px rgba(255,255,255,.5);
+          animation: monte var(--m, 6s) ease-in infinite;
+        }
+        @keyframes monte {
+          0%   { bottom: -2%;  transform: translateX(0)    scale(.65); opacity: 0; }
+          10%  { opacity: .9; }
+          35%  { transform: translateX(5px)  scale(1); }
+          65%  { transform: translateX(-4px) scale(1.05); }
+          88%  { opacity: .7; }
+          100% { bottom: 102%; transform: translateX(3px) scale(1.1); opacity: 0; }
+        }
 
         @media (prefers-reduced-motion: reduce) {
-          .vague, .vague2, .courant { animation: none; }
+          .v, .fil, .bulle { animation: none; }
+          .fil, .bulle { opacity: .35; }
         }
-        :host([sans-animation]) .vague,
-        :host([sans-animation]) .vague2,
-        :host([sans-animation]) .courant { animation: none; }
+        :host([sans-animation]) .v,
+        :host([sans-animation]) .fil,
+        :host([sans-animation]) .bulle { animation: none; }
+        :host([sans-animation]) .fil,
+        :host([sans-animation]) .bulle { opacity: .3; }
 
         .reperes { position: absolute; inset: 0; pointer-events: none; }
         .repere { position: absolute; left: 0; right: 0; display: flex;
@@ -173,27 +228,17 @@ class CarteHubEau extends HTMLElement {
           <div class="regime"></div>
         </div>
         <div class="scene">
-          <svg viewBox="0 0 300 210" preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="deg" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"   stop-color="var(--eau)" stop-opacity=".95"/>
-                <stop offset="100%" stop-color="var(--eau)" stop-opacity=".55"/>
-              </linearGradient>
-              <clipPath id="coupe"><rect x="0" y="0" width="300" height="210"/></clipPath>
-            </defs>
-            <g clip-path="url(#coupe)">
-              <g class="montee" id="masse">
-                <!-- Le corps part sous l'amplitude des vagues : commence a
-                     zero, il les aurait entierement recouvertes. -->
-                <rect id="corps" x="-300" y="14" width="900" height="420" fill="url(#deg)"/>
-                <g id="courants"></g>
-                <path class="vague2" id="v2" fill="var(--eau)" opacity=".45"/>
-                <path class="vague"  id="v1" fill="var(--eau)"/>
-                <path class="vague" id="crete" fill="none" stroke="#fff"
-                      stroke-width="1.5" opacity=".5"/>
-              </g>
-            </g>
-          </svg>
+          <div class="eau">
+            <svg viewBox="0 0 600 16" preserveAspectRatio="none">
+              <path class="v v3" opacity=".3"  fill="var(--eau)"></path>
+              <path class="v v2" opacity=".45" fill="var(--eau)"></path>
+              <path class="v"                  fill="var(--eau)"></path>
+              <path class="v" fill="none" stroke="#fff" stroke-width="1"
+                    opacity=".45"></path>
+            </svg>
+            <div class="flux"></div>
+            <div class="bulles"></div>
+          </div>
           <div class="reperes"></div>
           <div class="valeurs">
             <div class="grande"></div>
@@ -204,52 +249,62 @@ class CarteHubEau extends HTMLElement {
         <div class="pied">
           <div class="case"><div class="k">Débit</div><div class="v" id="c-debit">—</div></div>
           <div class="case"><div class="k">Tendance</div><div class="v" id="c-tend">—</div></div>
-          <div class="case"><div class="k">Mesure</div><div class="v" id="c-age">—</div></div>
+          <div class="case"><div class="k">Mesurée à</div><div class="v" id="c-age">—</div></div>
         </div>
       </ha-card>`;
 
-    const svg = this._racine.querySelector("svg");
-    // Deux vagues sinusoidales, dessinees deux fois de suite pour que le
-    // glissement de moitie boucle sans saut visible.
-    svg.querySelector("#v1").setAttribute("d", this._onde(7, 0));
-    svg.querySelector("#v2").setAttribute("d", this._onde(10, 55));
-    // Une crete claire souligne la surface : sans elle, deux nappes de la
-    // meme couleur se confondent et l'eau parait figee.
-    svg.querySelector("#crete").setAttribute("d", this._onde(7, 0, true));
-    const g = svg.querySelector("#courants");
-    // Les filets de courant : des traits qui filent dans la masse d'eau.
-    // Premiere version a 18 % d'opacite sur deux pixels et demi : invisibles.
-    // Ils sont desormais plus longs, plus clairs, et decales entre eux pour
-    // que le mouvement se lise sans donner l'impression d'un peigne.
-    const LIGNES = [
-      [24, 34, 0.30], [52, 70, 0.22], [30, 104, 0.26], [66, 138, 0.18],
-      [38, 170, 0.24], [58, 206, 0.16], [28, 240, 0.22], [48, 276, 0.14],
-    ];
-    LIGNES.forEach(([largeur, y, opacite], i) => {
-      const t = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-      t.setAttribute("class", "courant");
-      t.setAttribute("x", "0");
-      t.setAttribute("y", y);
-      t.setAttribute("width", largeur);
-      t.setAttribute("height", "3");
-      t.setAttribute("rx", "1.5");
-      t.setAttribute("fill", "#fff");
-      t.setAttribute("opacity", opacite);
-      t.style.animationDelay = `${-i * 1.15}s`;
-      g.appendChild(t);
+    const chemins = this._racine.querySelectorAll(".eau path");
+    // Quatre traces : trois nappes d'amplitudes decroissantes et une crete
+    // claire qui souligne la surface. Chaque onde est dessinee sur deux
+    // periodes, si bien qu'un glissement de moitie boucle sans saut.
+    [[5.5, 0], [4, 90], [2.5, 210], [5.5, 0]].forEach(([a, dec], i) => {
+      chemins[i].setAttribute("d", this._onde(a, dec, i === 3));
     });
+
+    const flux = this._racine.querySelector(".flux");
+    // Les filets sont repartis en profondeur, plus longs et plus rapides pres
+    // de la surface : c'est ainsi que se comporte un ecoulement reel.
+    [[8, 90, 4.2], [20, 130, 3.4], [33, 70, 4.8], [46, 150, 3.0],
+     [58, 80, 4.4], [71, 110, 3.6], [84, 60, 5.0]].forEach(([haut, large, ret], i) => {
+      const f = document.createElement("div");
+      f.className = "fil";
+      f.style.top = `${haut}%`;
+      f.style.width = `${large}px`;
+      f.style.animationDelay = `${-ret}s`;
+      // Plus on descend, plus le filet s'estompe : la lumiere ne penetre pas.
+      f.style.opacity = 0.85 - (haut / 100) * 0.45;
+      flux.appendChild(f);
+    });
+
+    const bulles = this._racine.querySelector(".bulles");
+    for (let i = 0; i < 18; i++) {
+      const b = document.createElement("div");
+      const taille = 3.5 + (i % 5) * 1.9;
+      b.className = "bulle";
+      b.style.left = `${3 + (i * 5.3) % 94}%`;
+      b.style.width = `${taille}px`;
+      b.style.height = `${taille}px`;
+      // Une bulle large monte plus vite qu'une fine, et chacune part a son
+      // heure pour eviter l'effet de rideau.
+      b.style.setProperty("--m", `${(8.5 - taille * 0.45).toFixed(1)}s`);
+      b.style.animationDelay = `${-(i * 0.83).toFixed(2)}s`;
+      bulles.appendChild(b);
+    }
+
     if (!this._cfg.animations) this.setAttribute("sans-animation", "");
   }
 
   _onde(amplitude, decalage, ligneSeule = false) {
-    // Une periode sur 150 unites, repetee jusqu'a 600 : la translation de
-    // -50 % ramene exactement au motif de depart, sans saut visible.
+    // Le trace couvre deux periodes de 300 unites sur les 600 du cadre : un
+    // glissement de moitie ramene donc exactement au motif de depart, sans
+    // saut visible a la reprise de la boucle.
+    const base = 16 - amplitude;
     let d = "";
-    for (let x = 0; x <= 600; x += 6) {
-      const y = amplitude + Math.sin((x + decalage) / 150 * Math.PI * 2) * amplitude * 0.9;
+    for (let x = 0; x <= 600; x += 5) {
+      const y = base + Math.sin(((x + decalage) / 300) * Math.PI * 2) * amplitude;
       d += `${x === 0 ? "M" : "L"} ${x} ${y.toFixed(2)} `;
     }
-    return ligneSeule ? d : d + `L 600 430 L 0 430 Z`;
+    return ligneSeule ? d : `${d} L 600 16 L 0 16 Z`;
   }
 
   /* -- mise a jour ------------------------------------------------------- */
@@ -287,12 +342,12 @@ class CarteHubEau extends HTMLElement {
       ? (attrs.lecture || "") + (Number.isFinite(rang) ? ` · rang ${nombre(rang, 0)} %` : "")
       : "station indisponible";
 
-    // Le niveau : on translate la masse d'eau vers le haut selon le rang.
-    const hauteurCadre = 210;
+    // Le niveau : la hauteur du bloc d'eau, en pourcentage du cadre. Un
+    // minimum de 4 % laisse voir un fond de lit meme a l'etiage le plus bas,
+    // sans quoi la carte parait vide et l'on doute qu'elle fonctionne.
     const part = dispo && Number.isFinite(rang) ? position(rang) : 0;
-    const y = hauteurCadre - part * hauteurCadre;
-    r.querySelector("#masse").setAttribute(
-      "transform", `translate(0 ${y.toFixed(1)})`);
+    r.querySelector(".eau").style.height =
+      `${Math.max(4, part * 100).toFixed(1)}%`;
 
     // Le courant accelere avec le debit, entre huit et une seconde et demie
     // par traversee. L'echelle est logarithmique : entre 0,2 et 200 m3/s il y
@@ -304,8 +359,11 @@ class CarteHubEau extends HTMLElement {
       duree = 8 - t * 6.5;
     }
     carte.style.setProperty("--vitesse", `${duree.toFixed(2)}s`);
-    carte.style.setProperty("--duree", `${(6 + duree * 0.4).toFixed(2)}s`);
-    carte.style.setProperty("--duree2", `${(9 + duree * 0.5).toFixed(2)}s`);
+    // Les vagues suivent le courant, mais de loin : une surface n'accelere
+    // pas autant que la veine d'eau qui la porte.
+    carte.style.setProperty("--t",  `${(7 + duree * 0.5).toFixed(2)}s`);
+    carte.style.setProperty("--t2", `${(11 + duree * 0.7).toFixed(2)}s`);
+    carte.style.setProperty("--t3", `${(17 + duree * 0.9).toFixed(2)}s`);
 
     this._reperes(attrs);
     this._pied(debit);
@@ -345,11 +403,27 @@ class CarteHubEau extends HTMLElement {
       ? `${t > 0.05 ? "↑" : t < -0.05 ? "↓" : "→"} ${nombre(Math.abs(t), 1)} cm/h`
       : "—";
 
+    // L'heure de la mesure, et non son age seul : Hub'Eau publie certaines
+    // stations par lots horaires, et un « il y a 63 min » sans autre contexte
+    // laisse croire que la carte a cesse de se rafraichir.
+    const brut = this._hass.states[this._cfg.derniere]?.state;
     const age = Number(this._hass.states[this._cfg.age]?.state);
-    r.querySelector("#c-age").textContent = Number.isFinite(age)
-      ? (age < 90 ? `il y a ${Math.round(age)} min`
-                  : `il y a ${nombre(age / 60, 1)} h`)
-      : "—";
+    const cel = r.querySelector("#c-age");
+    let texte = "—";
+    if (brut && !Number.isNaN(Date.parse(brut))) {
+      const d = new Date(brut);
+      texte = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+      if (Number.isFinite(age)) {
+        texte += age < 90 ? ` · ${Math.round(age)} min`
+                          : ` · ${nombre(age / 60, 1)} h`;
+      }
+    } else if (Number.isFinite(age)) {
+      texte = `il y a ${Math.round(age)} min`;
+    }
+    cel.textContent = texte;
+    cel.title = Number.isFinite(age) && age > 75
+      ? "Hub'Eau publie cette station par lots : le retard est normal."
+      : "";
   }
 
   _avertir(attrs) {
