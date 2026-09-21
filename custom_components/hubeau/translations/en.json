@@ -1,0 +1,52 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Find a gauging station",
+        "description": "Hydrometric stations near your home ({latitude}, {longitude}).",
+        "data": { "rayon_km": "Search radius" }
+      },
+      "station": {
+        "title": "Choose the station",
+        "description": "{nombre} station(s) found, nearest first.",
+        "data": { "station": "Station" }
+      }
+    },
+    "error": {
+      "connexion": "Hub'Eau is unreachable right now.",
+      "aucune_station": "No active station within this radius. Try a wider one."
+    },
+    "abort": {
+      "already_configured": "This station is already tracked.",
+      "toutes_configurees": "Every station within this radius is already tracked."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "hauteur": { "name": "Water level" },
+      "debit": { "name": "Discharge" },
+      "regime": {
+        "name": "Regime",
+        "state": {
+          "etiage_severe": "Severe low flow",
+          "etiage": "Low flow",
+          "normal": "Normal",
+          "soutenu": "Sustained",
+          "fort": "High",
+          "crue": "Flood",
+          "crue_majeure": "Major flood",
+          "indisponible": "Unavailable"
+        }
+      },
+      "rang": { "name": "Percentile rank" },
+      "tendance_hauteur": { "name": "Trend" },
+      "derniere_mesure": { "name": "Last measurement" },
+      "fraicheur": { "name": "Measurement age" }
+    },
+    "binary_sensor": {
+      "crue": { "name": "Flood" },
+      "obsolete": { "name": "Stale data" },
+      "capteur_fige": { "name": "Frozen sensor" }
+    }
+  }
+}

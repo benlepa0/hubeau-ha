@@ -1,0 +1,13 @@
+{
+  "domain": "hubeau",
+  "name": "Hub'Eau",
+  "version": "0.1.0",
+  "documentation": "https://github.com/benlepa0/hubeau-ha",
+  "issue_tracker": "https://github.com/benlepa0/hubeau-ha/issues",
+  "codeowners": ["@benlepa0"],
+  "config_flow": true,
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "requirements": [],
+  "quality_scale": "silver"
+}

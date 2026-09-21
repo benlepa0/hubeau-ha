@@ -1,0 +1,52 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Chercher une station",
+        "description": "Stations hydrométriques autour de votre domicile ({latitude}, {longitude}).",
+        "data": { "rayon_km": "Rayon de recherche" }
+      },
+      "station": {
+        "title": "Choisir la station",
+        "description": "{nombre} station(s) trouvée(s), de la plus proche à la plus lointaine.",
+        "data": { "station": "Station" }
+      }
+    },
+    "error": {
+      "connexion": "Hub'Eau est injoignable pour le moment.",
+      "aucune_station": "Aucune station en service dans ce rayon. Essayez plus large."
+    },
+    "abort": {
+      "already_configured": "Cette station est déjà suivie.",
+      "toutes_configurees": "Toutes les stations de ce rayon sont déjà suivies."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "hauteur": { "name": "Hauteur d'eau" },
+      "debit": { "name": "Débit" },
+      "regime": {
+        "name": "Régime",
+        "state": {
+          "etiage_severe": "Étiage sévère",
+          "etiage": "Étiage",
+          "normal": "Normal",
+          "soutenu": "Soutenu",
+          "fort": "Fort",
+          "crue": "Crue",
+          "crue_majeure": "Crue majeure",
+          "indisponible": "Indisponible"
+        }
+      },
+      "rang": { "name": "Rang sur la chronique" },
+      "tendance_hauteur": { "name": "Tendance" },
+      "derniere_mesure": { "name": "Dernière mesure" },
+      "fraicheur": { "name": "Âge de la mesure" }
+    },
+    "binary_sensor": {
+      "crue": { "name": "Crue" },
+      "obsolete": { "name": "Données obsolètes" },
+      "capteur_fige": { "name": "Capteur figé" }
+    }
+  }
+}
