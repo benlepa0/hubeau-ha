@@ -16,7 +16,7 @@
  * Aucune dependance, aucune compilation : un element personnalise et du SVG.
  */
 
-const VERSION = "0.3.1";
+const VERSION = "0.3.2";
 
 /* Reperes de l'echelle : percentile -> position verticale, de 0 en bas a 1
  * en haut. Les valeurs sont resserrees vers le haut parce que les crues sont
@@ -176,8 +176,14 @@ class CarteHubEau extends HTMLElement {
           transition: height 1.2s cubic-bezier(.4,0,.2,1);
           overflow: hidden;
         }
-        .eau svg { position: absolute; top: -17px; left: 0;
-                   width: 200%; height: 20px; }
+        /* La surface est un bandeau distinct, et non un SVG pose en haut du
+           bloc d'eau : celui-ci porte overflow:hidden pour contenir bulles et
+           filets, et decoupait donc les vagues, qui debordent par le haut. */
+        .surface { position: absolute; left: 0; right: 0; height: 20px;
+                   overflow: hidden; pointer-events: none;
+                   transition: bottom 1.2s cubic-bezier(.4,0,.2,1); }
+        .surface svg { position: absolute; top: 0; left: 0;
+                       width: 200%; height: 20px; }
 
         /* Deux sinusoides, l'une glissant a contresens de l'autre. Rien de
            plus : une troisieme onde puis une crete blanche avaient ete
@@ -266,11 +272,10 @@ class CarteHubEau extends HTMLElement {
         .cliquable:focus-visible { outline: 2px solid var(--accent);
                                    outline-offset: 2px; }
         .grande { font-size: 2.5rem; font-weight: 300; line-height: 1;
-                  font-variant-numeric: tabular-nums;
-                  text-shadow: 0 1px 6px rgba(0,0,0,.45); }
+                  font-variant-numeric: tabular-nums; }
         .grande small { font-size: .9rem; opacity: .75; margin-left: 4px; }
         .lecture { font-size: .76rem; opacity: .9; margin-top: 7px;
-                   line-height: 1.35; text-shadow: 0 1px 5px rgba(0,0,0,.5);
+                   line-height: 1.35;
                    display: -webkit-box; -webkit-line-clamp: 2;
                    -webkit-box-orient: vertical; overflow: hidden; }
 
@@ -302,12 +307,14 @@ class CarteHubEau extends HTMLElement {
         </div>
         <div class="scene">
           <div class="eau">
+            <div class="flux"></div>
+            <div class="bulles"></div>
+          </div>
+          <div class="surface">
             <svg viewBox="0 0 600 20" preserveAspectRatio="none">
               <path class="onde"       opacity=".55" fill="var(--eau)"></path>
               <path class="onde onde2" opacity=".35" fill="var(--eau)"></path>
             </svg>
-            <div class="flux"></div>
-            <div class="bulles"></div>
           </div>
           <div class="reperes"></div>
           <div class="valeurs">
@@ -330,7 +337,7 @@ class CarteHubEau extends HTMLElement {
         </div>
       </ha-card>`;
 
-    const chemins = this._racine.querySelectorAll(".eau path");
+    const chemins = this._racine.querySelectorAll(".surface path");
     // Deux sinusoides, dessinees chacune sur deux periodes : un glissement de
     // moitie ramene donc exactement au motif de depart, sans saut a la
     // reprise de la boucle.
@@ -455,8 +462,12 @@ class CarteHubEau extends HTMLElement {
     // minimum de 4 % laisse voir un fond de lit meme a l'etiage le plus bas,
     // sans quoi la carte parait vide et l'on doute qu'elle fonctionne.
     const part = dispo && Number.isFinite(rang) ? position(rang) : 0;
-    r.querySelector(".eau").style.height =
-      `${Math.max(4, part * 100).toFixed(1)}%`;
+    const pourcent = Math.max(4, part * 100);
+    r.querySelector(".eau").style.height = `${pourcent.toFixed(1)}%`;
+    // La surface se pose sur le sommet de l'eau, les vagues debordant vers le
+    // haut de leur pleine amplitude.
+    r.querySelector(".surface").style.bottom =
+      `calc(${pourcent.toFixed(1)}% - 1px)`;
 
     // Le courant accelere avec le debit, entre huit et une seconde et demie
     // par traversee. L'echelle est logarithmique : entre 0,2 et 200 m3/s il y
