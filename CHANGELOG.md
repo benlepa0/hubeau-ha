@@ -5,29 +5,16 @@ versionnement est [sémantique](https://semver.org/lang/fr/).
 
 ## [0.5.0] - 2026-09-22
 
-Home Assistant n'attend plus Hub'Eau. Au démarrage du 2026-09-22,
-l'initialisation avait pris 59,75 s, dont 57 pour cette seule intégration, et
-l'API laissait parfois pendre une requête deux minutes avant un 503.
+Home Assistant n'attend plus Hub'Eau (57 s sur 60 au démarrage du 2026-09-22).
 
 ### Modifié
 
-- **Aucun appel réseau à la mise en place.** Références et mesures des sept
-  derniers jours sont relues sur le disque ; Hub'Eau est interrogé ensuite, en
-  arrière-plan. Mise en place et rechargement ne prennent plus que quelques
-  centièmes de seconde, contre 3 à 60 s auparavant.
-- **Une requête par cycle au lieu de quatre à six**, hauteur et débit
-  ensemble, limitée à ce qui est paru depuis la dernière mesure connue. La
-  tendance, la détection d'un capteur figé et le résumé sur sept jours se
-  calculent sur un tampon local.
-- **Références en une requête par grandeur** au lieu de six tranches de cinq
-  ans, calculées en tâche de fond ; un échec garde les références acquises et
-  retente une heure plus tard.
-- **Une station muette garde sa dernière valeur.** Seul le binaire *Données
-  obsolètes* le signale ; les entités ne deviennent indisponibles que si l'API
-  ne répond plus. Une requête perdue sur des mesures fraîches est ignorée.
-- Délai d'attente ramené à 20 s pour le cycle courant, 3 essais au lieu de 4.
-- La carte est servie avec cache, sous une URL qui porte l'empreinte de son
-  contenu : elle n'est plus retéléchargée à chaque ouverture de l'interface.
+- Mise en place sans réseau : état relu sur le disque, API en arrière-plan.
+- Une requête par cycle (hauteur et débit, depuis la dernière mesure) au lieu
+  de quatre à six.
+- Références : une requête par grandeur au lieu de six, en tâche de fond.
+- Station muette : dernière valeur conservée, signalée par *Données obsolètes*.
+- Délai 20 s, 3 essais. Carte mise en cache, URL à empreinte.
 
 ## [0.4.0] - 2026-09-22
 
