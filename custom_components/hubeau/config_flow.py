@@ -100,7 +100,7 @@ class FluxConfiguration(ConfigFlow, domain=DOMAINE):
                 value=s["code_station"],
                 # La distance figure dans le libelle : c'est le critere de
                 # choix quand plusieurs stations bordent le meme cours d'eau.
-                label=f"{s['libelle_station']} — {s['distance_km']} km",
+                label=f"{s['libelle_station']} ({s['distance_km']} km)",
             )
             for s in self._stations if s["code_station"] not in deja
         ]

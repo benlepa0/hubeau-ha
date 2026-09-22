@@ -83,7 +83,7 @@ def main() -> None:
     for taille, nom in ((256, "icon.png"), (512, "icon@2x.png")):
         chemin = DOSSIER / nom
         dessiner(taille).save(chemin, "PNG", optimize=True)
-        print(f"{chemin.relative_to(DOSSIER.parent.parent.parent)} — {taille}x{taille}")
+        print(f"{chemin.relative_to(DOSSIER.parent.parent.parent)} : {taille}x{taille}")
 
 
 if __name__ == "__main__":

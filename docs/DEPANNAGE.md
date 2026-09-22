@@ -13,7 +13,7 @@ les extrêmes s'affichent d'un coup.
 
 Trois signes que la lecture est correcte :
 
-- le **rang** est cohérent avec le régime annoncé — un régime *étiage* sous
+- le **rang** est cohérent avec le régime annoncé : un régime *étiage* sous
   le percentile 25, une *crue* au-delà du 99 ;
 - les **références** en attributs portent une profondeur crédible : nombre de
   jours, date du maximum, médiane ;
@@ -24,8 +24,8 @@ a servi de station de mise au point :
 
 | | |
 |---|---|
-| hauteur | 0,272 m — rang 8,7 %, régime *étiage* |
-| débit | 0,247 m³/s — rang 24,4 % |
+| hauteur | 0,272 m, rang 8,7 %, régime *étiage* |
+| débit | 0,247 m³/s, rang 24,4 % |
 | références de hauteur | 11 132 jours (30,5 ans), médiane 0,443 m, maximum 4,40 m le 2014-10-06 |
 | références de débit | 11 179 jours (30,6 ans), médiane 0,648 m³/s, maximum 239,42 m³/s le 2002-12-12 |
 | premier démarrage | 36 s, historique compris |

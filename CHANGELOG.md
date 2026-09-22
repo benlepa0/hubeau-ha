@@ -3,7 +3,7 @@
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le
 versionnement est [sémantique](https://semver.org/lang/fr/).
 
-## [0.3.1] — 2026-09-22
+## [0.3.1] - 2026-09-22
 
 ### Modifié
 
@@ -14,7 +14,7 @@ versionnement est [sémantique](https://semver.org/lang/fr/).
   par le Service central Vigicrues et diffusées par Hub'Eau, portail de l'OFB
   et du BRGM, sous Licence Ouverte Etalab.
 
-## [0.3.0] — 2026-09-22
+## [0.3.0] - 2026-09-22
 
 ### Ajouté
 
@@ -38,7 +38,7 @@ Retirer la ressource Lovelace `hubeau-card.js` et le fichier correspondant dans
 et c'est la première chargée qui l'emporte : un élément personnalisé ne se
 définit qu'une fois par page.
 
-## 0.2.1 — 2026-09-21
+## 0.2.1 - 2026-09-21
 
 ### Corrigé
 
@@ -47,20 +47,20 @@ définit qu'une fois par page.
   de Hub'Eau toutes les quinze minutes. Les références sur trente ans restent
   réservées au classement du niveau.
 
-## 0.2.0 — 2026-09-21
+## 0.2.0 - 2026-09-21
 
 ### Supprimé
 
 - **L'import des anciennes mesures dans le `recorder`.** La chronique ne sert
-  plus qu'au calcul des références de la station — percentiles, médiane,
-  moyenne, extrêmes — conservées dans un cache local et recalculées tous les
+  plus qu'au calcul des références de la station (percentiles, médiane,
+  moyenne, extrêmes), conservées dans un cache local et recalculées tous les
   trente jours.
 
 Les statistiques déjà importées par la version précédente restent en base ;
 leur nettoyage est une opération distincte, à faire depuis les outils de Home
 Assistant.
 
-## 0.1.0 — 2026-09-21
+## 0.1.0 - 2026-09-21
 
 Première version, installée et vérifiée sur un serveur.
 

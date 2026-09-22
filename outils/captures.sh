@@ -37,5 +37,5 @@ for chemin in sorted(Path(sys.argv[1]).glob("carte-*.png")):
             bas = min(image.height, y + 20)
             break
     image.crop((0, 0, image.width, bas)).save(chemin, optimize=True)
-    print(f"{chemin.name} — {Image.open(chemin).size[0]}x{Image.open(chemin).size[1]}")
+    print(f"{chemin.name} : {Image.open(chemin).size[0]}x{Image.open(chemin).size[1]}")
 PY
