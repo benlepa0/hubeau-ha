@@ -12,7 +12,7 @@ leur propre station : régime, rang en percentiles, extrêmes connus. Les donné
 viennent de l'API publique [Hub'Eau][hubeau], **sans clé ni compte**, et une
 carte Lovelace est livrée avec l'intégration.
 
-![La carte, en étiage, en régime fort et en crue][capture]
+![La carte en étiage, en régime fort et en crue majeure][capture]
 
 ## Sommaire
 

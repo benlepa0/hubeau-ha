@@ -40,9 +40,22 @@ for chemin in sorted(Path(sys.argv[1]).glob("carte-*.png")):
     print(f"{chemin.name} : {Image.open(chemin).size[0]}x{Image.open(chemin).size[1]}")
 
 # Les cinq etats tiennent sur 1900 pixels, que GitHub reduit de moitie : les
-# chiffres deviennent illisibles. L'image de tete ne garde donc que les trois
-# premieres cartes, a une echelle ou l'on peut encore lire la mesure.
-image = Image.open(Path(sys.argv[1]) / "carte-sombre.png")
-image.crop((0, 0, 1120, image.height)).save(Path(sys.argv[1]) / "carte.png", optimize=True)
-print(f"carte.png : 1120x{image.height}")
+# chiffres y deviennent illisibles. L'image de tete n'en garde donc que trois,
+# choisis pour l'ecart qu'ils montrent : etiage, regime fort, crue majeure.
+MARGE, LARGEUR, ECART = 28, 340, 24
+source = Image.open(Path(sys.argv[1]) / "carte-sombre.png")
+colonnes = [0, 2, 3]
+tete = Image.new(
+    "RGB",
+    (2 * MARGE + len(colonnes) * LARGEUR + (len(colonnes) - 1) * ECART, source.height),
+    source.getpixel((5, source.height - 5)),
+)
+for place, colonne in enumerate(colonnes):
+    gauche = MARGE + colonne * (LARGEUR + ECART)
+    tete.paste(
+        source.crop((gauche, 0, gauche + LARGEUR, source.height)),
+        (MARGE + place * (LARGEUR + ECART), 0),
+    )
+tete.save(Path(sys.argv[1]) / "carte.png", optimize=True)
+print(f"carte.png : {tete.width}x{tete.height}")
 PY
