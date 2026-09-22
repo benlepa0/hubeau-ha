@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="ciel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4CC2F7"/><stop offset="1" stop-color="#0A52B0"/>
+    </linearGradient>
+    <linearGradient id="goutteFond" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#E3F5FE"/>
+    </linearGradient>
+    <linearGradient id="eau" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4FC3F7"/><stop offset="1" stop-color="#1565C0"/>
+    </linearGradient>
+    <clipPath id="tuile"><rect width="512" height="512" rx="114"/></clipPath>
+    <clipPath id="goutte">
+      <path d="M256 72 C 256 72 398 226 398 318 a142 142 0 1 1 -284 0 C 114 226 256 72 256 72 Z"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#tuile)">
+    <rect width="512" height="512" fill="url(#ciel)"/>
+    <g clip-path="url(#goutte)">
+      <rect x="100" y="60" width="312" height="420" fill="url(#goutteFond)"/>
+      <path d="M100 318 C 158 286 202 350 260 318 S 354 286 412 318 L412 480 L100 480 Z" fill="#7FD3F7"/>
+      <path d="M100 358 C 158 326 202 390 260 358 S 354 326 412 358 L412 480 L100 480 Z" fill="url(#eau)"/>
+    </g>
+  </g>
+</svg>

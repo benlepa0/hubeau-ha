@@ -14,19 +14,19 @@ carte Lovelace est livrée avec l'intégration.
 
 ![La carte en étiage, en régime fort et en crue majeure][capture]
 
-## Sommaire
+## 📑 Sommaire
 
-- [Pourquoi](#pourquoi)
-- [Fonctionnalités](#fonctionnalités)
-- [Installation](#installation)
-- [Entités](#entités)
-- [La carte](#la-carte)
-- [Exemple d'automatisation](#exemple-dautomatisation)
-- [Limites connues](#limites-connues)
-- [Données et attribution](#données-et-attribution)
-- [Dépannage et contribution](#dépannage-et-contribution)
+- [💧 Pourquoi](#-pourquoi)
+- [✨ Fonctionnalités](#-fonctionnalités)
+- [📦 Installation](#-installation)
+- [📊 Entités](#-entités)
+- [🌊 La carte](#-la-carte)
+- [🤖 Exemple d'automatisation](#-exemple-dautomatisation)
+- [⚠️ Limites connues](#️-limites-connues)
+- [📜 Données et attribution](#-données-et-attribution)
+- [🛟 Dépannage et contribution](#-dépannage-et-contribution)
 
-## Pourquoi
+## 💧 Pourquoi
 
 Une hauteur d'eau isolée ne dit rien. « 0,27 m » n'a de sens que rapporté à sa
 rivière : c'est un étiage marqué sur le Lez, ce serait un lit à sec sur la
@@ -38,7 +38,7 @@ jusqu'à trente ans, et en tire les percentiles qui situent la mesure du moment 
 
 Les seuils sont donc **relatifs à chaque station**, jamais absolus.
 
-## Fonctionnalités
+## ✨ Fonctionnalités
 
 - **Régime et rang** calculés sur la chronique de la station, du percentile 0
   au percentile 100 : d'*étiage sévère* à *crue majeure*.
@@ -53,7 +53,7 @@ Les seuils sont donc **relatifs à chaque station**, jamais absolus.
 - Aucune écriture dans le `recorder`, aucun import d'anciennes mesures.
 - Interface en français et en anglais.
 
-## Installation
+## 📦 Installation
 
 ### Par HACS
 
@@ -85,7 +85,7 @@ trentaine de secondes. C'est voulu : ces références sont ce qui rend les
 mesures lisibles. Elles sont ensuite mises en cache et recalculées tous les
 trente jours.
 
-## Entités
+## 📊 Entités
 
 Une station suivie donne dix entités :
 
@@ -107,7 +107,7 @@ moyennes journalières pour le débit ; le rang compare la mesure instantanée �
 cette distribution. Les catégories de régime sont des repères propres au
 projet, **pas des seuils officiels de vigilance**.
 
-## La carte
+## 🌊 La carte
 
 Elle vient avec l'intégration et apparaît dans le sélecteur de cartes sous le
 nom « Hub'Eau ». Le niveau monte à la hauteur que lui donne son rang, le
@@ -124,7 +124,7 @@ percentiles et thème clair : [docs/CARTE.md][doc-carte].
 
 ![Les cinq états de la carte, en thème clair][capture-claire]
 
-## Exemple d'automatisation
+## 🤖 Exemple d'automatisation
 
 ```yaml
 automation:
@@ -147,7 +147,7 @@ déclenchement. Pour une alerte de sécurité, se reporter à
 [Vigicrues](https://www.vigicrues.gouv.fr/) : cette intégration n'en est pas
 une.
 
-## Limites connues
+## ⚠️ Limites connues
 
 - Hub'Eau ne conserve le **pas de temps fin qu'un mois glissant**. Au-delà,
   seules les valeurs journalières existent, d'où des références fondées sur la
@@ -161,7 +161,7 @@ une.
   sans le dire. Ce qui a été mesuré sur onze stations, et les trois défauts de
   diagnostic que la campagne a laissés ouverts : [docs/VERIFICATIONS.md][doc-verif].
 
-## Données et attribution
+## 📜 Données et attribution
 
 Les données sont diffusées par [Hub'Eau][hubeau], portail d'API du système
 d'information sur l'eau, fruit de la collaboration de l'**OFB** et du **BRGM**.
@@ -175,7 +175,7 @@ L'intégration interroge l'API toutes les cinq minutes par station et s'annonce
 par un en-tête explicite. Hub'Eau est un service public, et les mesures ne sont
 de toute façon pas publiées plus souvent.
 
-## Dépannage et contribution
+## 🛟 Dépannage et contribution
 
 Entités indisponibles, références absentes, carte qui ne se met pas à jour :
 [docs/DEPANNAGE.md][doc-depannage].
