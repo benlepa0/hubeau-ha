@@ -3,7 +3,7 @@
 [![Version][badge-version]][releases]
 [![HACS][badge-hacs]][hacs]
 [![Validation][badge-ci]][ci]
-[![Licence][badge-licence]](LICENSE)
+[![Licence][badge-licence]](https://github.com/benlepa0/hubeau-ha/blob/main/LICENSE)
 
 Suit une station hydrométrique française — hauteur d'eau et débit — et **situe
 chaque mesure dans la chronique de cette station** : régime, rang en
@@ -11,7 +11,7 @@ percentiles, extrêmes connus. Les données viennent de l'API publique
 [Hub'Eau][hubeau], **sans clé ni compte**. Une carte Lovelace est livrée avec
 l'intégration.
 
-![La carte, de l'étiage à la crue, et une station en panne](docs/captures/carte-sombre.png)
+![La carte, de l'étiage à la crue, et une station en panne](https://raw.githubusercontent.com/benlepa0/hubeau-ha/main/docs/captures/carte-sombre.png)
 
 ## Pourquoi
 
@@ -105,12 +105,12 @@ type: custom:hubeau-card
 hauteur: sensor.le_lez_a_montferrier_sur_lez_lavalette_hauteur_d_eau
 ```
 
-Options, échelle en percentiles et thème clair : [docs/CARTE.md](docs/CARTE.md).
+Options, échelle en percentiles et thème clair : [docs/CARTE.md](https://github.com/benlepa0/hubeau-ha/blob/main/docs/CARTE.md).
 
 ## Dépannage
 
 Entités indisponibles, références absentes, carte qui ne se met pas à jour :
-[docs/DEPANNAGE.md](docs/DEPANNAGE.md).
+[docs/DEPANNAGE.md](https://github.com/benlepa0/hubeau-ha/blob/main/docs/DEPANNAGE.md).
 
 ## Limites connues
 
@@ -123,7 +123,7 @@ Entités indisponibles, références absentes, carte qui ne se met pas à jour :
   le producteur : au-delà d'un certain débit, la courbe de tarage est
   extrapolée faute de jaugeage possible en crue.
 - Toutes les stations ne publient pas le débit, et certaines cessent de publier
-  sans le dire. Voir [docs/VERIFICATIONS.md](docs/VERIFICATIONS.md) pour ce qui
+  sans le dire. Voir [docs/VERIFICATIONS.md](https://github.com/benlepa0/hubeau-ha/blob/main/docs/VERIFICATIONS.md) pour ce qui
   a été mesuré sur onze stations, et ce qui reste imparfait.
 - **Ce n'est pas un outil d'alerte.** Pour la vigilance officielle, voir
   [Vigicrues](https://www.vigicrues.gouv.fr/).
@@ -149,13 +149,13 @@ Les anomalies et les demandes passent par les
 [issues](https://github.com/benlepa0/hubeau-ha/issues). Une anomalie utile
 donne le **code de la station** (visible dans les attributs de l'entité), la
 version de l'intégration et l'extrait de journal correspondant — après un
-passage par [docs/DEPANNAGE.md](docs/DEPANNAGE.md).
+passage par [docs/DEPANNAGE.md](https://github.com/benlepa0/hubeau-ha/blob/main/docs/DEPANNAGE.md).
 
-Le journal des versions est dans [CHANGELOG.md](CHANGELOG.md).
+Le journal des versions est dans [CHANGELOG.md](https://github.com/benlepa0/hubeau-ha/blob/main/CHANGELOG.md).
 
 ## Licence
 
-[MIT](LICENSE).
+[MIT](https://github.com/benlepa0/hubeau-ha/blob/main/LICENSE).
 
 <!-- liens -->
 [hubeau]: https://hubeau.eaufrance.fr/
