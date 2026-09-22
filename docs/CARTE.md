@@ -3,6 +3,18 @@
 Carte Lovelace pour l'intégration `hubeau`. Aucune dépendance, aucune
 compilation : un élément personnalisé et du SVG.
 
+**Elle est livrée avec l'intégration**, dans le même paquet
+(`custom_components/hubeau/frontend/hubeau-card.js`). C'est l'intégration qui
+la sert et la déclare au frontend : il n'y a ni second dépôt à installer, ni
+ressource à ajouter au tableau de bord. La carte apparaît dans le sélecteur
+de cartes sous le nom « Hub'Eau ».
+
+L'URL servie porte le numéro de version du paquet et n'est pas mise en cache
+par Home Assistant. C'est délibéré : servis avec le `Cache-Control` de
+trente et un jours appliqué par défaut aux fichiers statiques, les correctifs
+de la carte restaient invisibles pendant des semaines dans le navigateur, et
+plus encore dans l'application Companion.
+
 ## Le parti pris
 
 Une rivière ne se lit pas sur une échelle linéaire. Sur le Lez, la médiane
@@ -67,10 +79,13 @@ titre, `animations: false` fige la scène.
 
 ## Démonstration hors Home Assistant
 
-`demo.html` affiche cinq états côte à côte — étiage, normal, fort, crue, et
+`outils/demo.html` affiche cinq états côte à côte — étiage, normal, fort, crue, et
 une station en panne — avec un `hass` simulé. Utile pour travailler le rendu
 sans redémarrer quoi que ce soit :
 
 ```bash
-cd carte && python3 -m http.server 8777
+python3 -m http.server 8777 --directory outils
 ```
+
+La page charge le fichier depuis `custom_components/hubeau/frontend/`, c'est
+donc bien la carte livrée qui est affichée, et non une copie.

@@ -1,78 +1,71 @@
-# Installation et vérification
+# Vérification, cache et retrait
 
-État de l'installation sur ce serveur, au 2026-09-21.
+Ce que l'on regarde après avoir ajouté une station, où vivent les données, et
+comment tout défaire. L'installation elle-même est décrite dans le
+[README](../README.md).
 
-## Ce qui a été fait
+## Après l'ajout d'une station
 
-1. `custom_components/hubeau/` copié dans `~/homeassistant/config/custom_components/`
-   (par `docker cp`, le dossier appartenant à root) ;
-2. `hass --script check_config` — passé sans erreur ;
-3. Home Assistant redémarré par son API, revenu en `RUNNING` en 36 secondes ;
-4. intégration configurée par l'API : rayon 25 km → 13 stations → Lavalette
-   (`Y320002001`), retenue pour ses 30 ans de chronique là où Trinquat, plus
-   proche, n'a ouvert qu'en 2022 ;
-5. carte ajoutée à la vue Debug par l'API WebSocket de Lovelace — et non par
-   une édition de `.storage`, que Home Assistant aurait écrasée.
+Dix entités apparaissent : sept capteurs et trois binaires. Le premier
+rafraîchissement télécharge la chronique et prend une trentaine de secondes ;
+les entités restent indisponibles pendant ce temps, puis le régime, le rang et
+les extrêmes s'affichent d'un coup.
 
-Une sauvegarde du tableau de bord précède l'opération :
-`.storage/lovelace.dashboard_dashboard.bak-20260921-154311-avant-hubeau`.
+Trois signes que la lecture est correcte :
 
-## Vérifications
+- le **rang** est cohérent avec le régime annoncé — un régime *étiage* sous
+  le percentile 25, une *crue* au-delà du 99 ;
+- les **références** en attributs portent une profondeur crédible : nombre de
+  jours, date du maximum, médiane ;
+- le journal ne contient aucune erreur `hubeau`.
+
+Exemple relevé sur le Lez à Montferrier-sur-Lez (Lavalette, `Y320002001`), qui
+a servi de station de mise au point :
 
 | | |
 |---|---|
-| entités créées | 10, toutes disponibles |
 | hauteur | 0,272 m — rang 8,7 %, régime *étiage* |
 | débit | 0,247 m³/s — rang 24,4 % |
-| statistiques hauteur | 11 132 jours (30,5 ans), médiane 0,443 m, max 4,40 m le 2014-10-06 |
-| statistiques débit | 11 179 jours (30,6 ans), médiane 0,648 m³/s, max 239,42 m³/s le 2002-12-12 |
-| erreurs au journal | aucune |
-| durée du premier démarrage | 36 s, historique compris |
+| références de hauteur | 11 132 jours (30,5 ans), médiane 0,443 m, maximum 4,40 m le 2014-10-06 |
+| références de débit | 11 179 jours (30,6 ans), médiane 0,648 m³/s, maximum 239,42 m³/s le 2002-12-12 |
+| premier démarrage | 36 s, historique compris |
 
-Les statistiques sont en cache dans `.storage/hubeau.Y320002001.statistiques`
-et ne sont recalculées qu'une fois par mois.
+Une station trop récente n'aura pas de références : ses mesures restent
+exposées, sans lecture. Juvignac, ouverte en 2022, est dans ce cas.
 
-## Historique et références
+## Cache des références
 
-Depuis la version 0.2.0, l'historique externe sert uniquement au calcul des
-références de la station. Il n'est plus importé dans le recorder de Home
-Assistant. Les statistiques déjà importées par la version précédente restent
-en base tant qu'un nettoyage distinct n'a pas été réalisé.
+Les références sont conservées dans `.storage/hubeau.<code station>.statistiques`
+et recalculées tous les trente jours. Elles ne dépendent ni de la durée
+d'installation de Home Assistant, ni du `recorder` : à série identique, le
+calcul redonne le même résultat.
+
+L'intégration n'importe aucune ancienne mesure dans les statistiques long
+terme de Home Assistant. Une installation antérieure à la version 0.2.0 peut
+en avoir laissé en base ; leur nettoyage éventuel est une opération distincte,
+à faire depuis les outils de Home Assistant.
+
+## Vérifier la carte réellement chargée
+
+La carte est servie par l'intégration à l'adresse
+`/hubeau/hubeau-card.js?v=<version du paquet>`. La console du navigateur
+affiche une ligne `HUBEAU-CARD <version>` à son chargement ; c'est le moyen le
+plus sûr de savoir ce qui s'exécute, plutôt que ce que l'on croit avoir
+déployé.
+
+Si une ancienne copie traîne dans `www/community/hubeau-card/`, héritée d'une
+version antérieure à la 0.3.0, elle peut être chargée en plus par une
+ressource Lovelace restée déclarée. La carte le signale alors dans la console
+au lieu d'échouer en silence : un élément personnalisé ne se définit qu'une
+fois par page. Supprimer la ressource et le fichier.
 
 ## Retrait
 
 ```bash
-docker exec homeassistant rm -rf /config/custom_components/hubeau
-docker exec homeassistant rm -f /config/.storage/hubeau.Y320002001.statistiques
-# puis supprimer l'entrée dans Paramètres → Appareils et services
+# depuis la configuration de Home Assistant
+rm -rf custom_components/hubeau
+rm -f .storage/hubeau.*.statistiques
 ```
 
-## Déploiement de la carte
-
-`outils/deployer.sh` copie l'intégration et la carte, puis vérifie par somme
-de contrôle que ce qui est déployé correspond bien à la source.
-
-Ce script existe parce que l'inverse s'est produit : la carte avait été copiée
-une première fois, puis corrigée deux fois dans le dépôt **sans être
-redéployée**. La version en place était celle où les vagues étaient masquées
-par un rectangle de la même couleur et où les filets de courant, à 18 %
-d'opacité sur deux pixels et demi, restaient invisibles. Conclusion légitime de
-l'utilisateur : « je ne vois pas d'animation ».
-
-**Le nom du fichier porte le numéro de version**, et pas seulement l'URL.
-
-Home Assistant sert `/hacsfiles` avec `Cache-Control: max-age=2678400`, soit
-trente et un jours. Un simple paramètre `?v=` ne suffit pas à s'en défaire :
-l'application Companion continue de servir ce qu'elle détient, et l'on croit
-que rien n'a changé. Un nom différent, lui, n'a jamais été demandé — il ne
-peut pas être en cache. Le script de déploiement dépose donc
-`hubeau-card-<version>.js` à côté du nom fixe, ne garde que les trois
-dernières, et la ressource Lovelace pointe sur le nom versionné.
-
-La carte refuse aussi de s'enregistrer deux fois : si une version antérieure
-est déjà chargée dans la page, `customElements.define` lèverait une erreur et
-le reste du fichier ne s'exécuterait pas. Un avertissement le dit dans la
-console plutôt que d'échouer en silence.
-
-Pour vérifier la version réellement chargée, la console du navigateur affiche
-une ligne `HUBEAU-CARD 0.1.1` au chargement de la carte.
+Puis supprimer l'entrée dans **Paramètres → Appareils et services**. Par HACS,
+la suppression de l'intégration fait le premier point.

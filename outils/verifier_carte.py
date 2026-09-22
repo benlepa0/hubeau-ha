@@ -49,7 +49,7 @@ def verifier(chemin: Path) -> list[str]:
 
 
 if __name__ == "__main__":
-    chemin = Path(sys.argv[1] if len(sys.argv) > 1 else "carte/hubeau-card.js")
+    chemin = Path(sys.argv[1] if len(sys.argv) > 1 else "custom_components/hubeau/frontend/hubeau-card.js")
     fautes = verifier(chemin)
     for f in fautes:
         print(f"   {f}")

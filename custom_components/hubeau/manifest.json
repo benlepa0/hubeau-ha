@@ -1,13 +1,13 @@
 {
   "domain": "hubeau",
   "name": "Hub'Eau",
-  "version": "0.2.1",
-  "documentation": "https://github.com/benlepa0/hubeau-ha",
-  "issue_tracker": "https://github.com/benlepa0/hubeau-ha/issues",
   "codeowners": ["@benlepa0"],
   "config_flow": true,
+  "dependencies": ["frontend", "http"],
+  "documentation": "https://github.com/benlepa0/hubeau-ha",
   "integration_type": "service",
   "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/benlepa0/hubeau-ha/issues",
   "requirements": [],
-  "quality_scale": "silver"
+  "version": "0.3.0"
 }

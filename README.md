@@ -1,6 +1,6 @@
 # Hub'Eau pour Home Assistant
 
-Dernière révision : 2026-09-21.
+Dernière révision : 2026-09-22.
 
 Suivi des cours d'eau français : hauteur, débit, et surtout **ce que ces
 chiffres veulent dire**.
@@ -69,12 +69,35 @@ Par station suivie :
 | Données obsolètes *(binaire)* | plus de 2 h sans mesure |
 | Capteur figé *(binaire)* | station immobile ou incohérente |
 
+## La carte
+
+Une carte Lovelace accompagne l'intégration, **dans le même paquet** : rien de
+plus à installer, aucune ressource à déclarer dans le tableau de bord. Elle
+apparaît dans le sélecteur de cartes sous le nom « Hub'Eau », et montre le
+niveau à la hauteur que lui donne son rang dans la chronique, le courant à la
+vitesse du débit, et les extrêmes des sept derniers jours.
+
+Parti pris, configuration et pièges : [docs/CARTE.md](docs/CARTE.md).
+
 ## Installation
 
-Par HACS, en dépôt personnalisé, puis **Paramètres → Appareils et services →
-Ajouter une intégration → Hub'Eau**. La configuration se fait entièrement par
-l'interface : on choisit un rayon autour du domicile, puis une station dans la
-liste triée par distance.
+### Par HACS
+
+Le dépôt n'est pas encore dans le magasin par défaut. Il s'ajoute en **dépôt
+personnalisé** — HACS → menu ⋮ → *Dépôts personnalisés* →
+`https://github.com/benlepa0/hubeau-ha`, catégorie *Intégration* — puis
+s'installe depuis la liste. Redémarrer Home Assistant.
+
+### À la main
+
+Copier `custom_components/hubeau/` dans le dossier `custom_components/` de la
+configuration, puis redémarrer.
+
+### Puis, dans les deux cas
+
+**Paramètres → Appareils et services → Ajouter une intégration → Hub'Eau**. La
+configuration se fait entièrement par l'interface : on choisit un rayon autour
+du domicile, puis une station dans la liste triée par distance.
 
 Le premier démarrage télécharge trente ans d'historique et peut prendre une
 trentaine de secondes. C'est voulu : les statistiques sont ce qui rend les
@@ -98,6 +121,12 @@ mesures lisibles.
 MIT.
 
 ## Historique court
+
+- 2026-09-22 — Version 0.3.0 : la carte est livrée dans le paquet de
+  l'intégration, qui la sert elle-même et la déclare au frontend. Plus de
+  ressource Lovelace à ajouter, plus de fichier à copier dans `www/`, et plus
+  de version de la carte qui dérive de celle du dépôt. Dépôt public, icône de
+  marque, et validation HACS et hassfest en intégration continue.
 
 - 2026-09-21 — Campagne de tests sur onze stations et simulations des pannes ;
   calculs du bandeau vérifiés, limites de fraîcheur et de diagnostic documentées.

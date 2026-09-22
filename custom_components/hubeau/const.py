@@ -64,3 +64,11 @@ MINUTES_AVANT_OBSOLESCENCE: Final = 120
 # Lirou au Triadou, qui renvoie la meme valeur a la troisieme decimale pres
 # depuis des semaines. On detecte l'immobilite plutot que l'absence.
 HEURES_DETECTION_FIGE: Final = 12
+
+# La carte Lovelace voyage avec l'integration, dans le meme paquet : c'est
+# l'integration qui la sert et qui la charge dans le frontend. L'utilisateur
+# n'a donc ni second depot a installer, ni ressource a declarer a la main dans
+# le tableau de bord.
+FICHIER_CARTE: Final = "frontend/hubeau-card.js"
+URL_CARTE: Final = "/hubeau/hubeau-card.js"
+CLE_CARTE: Final = "hubeau_carte_servie"

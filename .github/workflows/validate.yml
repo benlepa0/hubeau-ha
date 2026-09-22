@@ -1,0 +1,46 @@
+# Les deux controles exiges par HACS pour figurer dans le magasin par defaut,
+# plus les verifications de la carte, qui etaient jusqu'ici lancees a la main
+# par le script de deploiement.
+name: Validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # HACS revalide les depots du magasin ; un depot qui casse entre deux
+    # versions doit le signaler avant qu'un utilisateur ne le decouvre.
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+
+jobs:
+  hacs:
+    name: HACS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hacs/action@main
+        with:
+          category: integration
+
+  hassfest:
+    name: hassfest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: home-assistant/actions/hassfest@master
+
+  carte:
+    name: Carte
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Syntaxe JavaScript
+        run: node --check custom_components/hubeau/frontend/hubeau-card.js
+      - name: Controles de la carte
+        run: python3 outils/verifier_carte.py
+      - name: Syntaxe Python
+        run: python3 -m compileall -q custom_components/hubeau
