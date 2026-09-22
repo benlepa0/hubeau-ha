@@ -3,6 +3,29 @@
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le
 versionnement est [sémantique](https://semver.org/lang/fr/).
 
+## [0.3.2] - 2026-09-22
+
+### Modifié
+
+- Vérification des hypothèses scientifiques contre les sources officielles,
+  consignée dans [docs/HYPOTHESES.md](docs/HYPOTHESES.md) avec les mesures
+  faites sur trente ans de chronique du Lez.
+- Trois affirmations corrigées dans la documentation et les commentaires :
+  les bornes de régime sont une convention de ce projet et non un usage de
+  l'hydrologie officielle ; une hauteur négative ne prouve pas une station
+  hors d'eau, puisque les hauteurs sont rapportées au zéro de l'échelle ; le
+  rang de débit est surévalué en crue, une pointe étant comparée à des
+  moyennes journalières.
+- La limite sur les valeurs douteuses dit maintenant ce qu'il en est :
+  l'intégration ne filtre ni le statut ni la qualification publiés par
+  Hub'Eau.
+
+### Connu, non corrigé
+
+Trois correctifs sont identifiés et mesurés, aucun n'est appliqué : référence
+de débit sur `QIXnJ`, filtrage sur `code_statut` et `code_qualification`,
+signalement d'une chronique trop courte.
+
 ## [0.3.1] - 2026-09-22
 
 ### Modifié
@@ -74,5 +97,6 @@ Première version, installée et vérifiée sur un serveur.
 Les versions antérieures à la 0.3.0 n'ont pas été publiées en release : le
 dépôt était encore privé.
 
+[0.3.2]: https://github.com/benlepa0/hubeau-ha/releases/tag/v0.3.2
 [0.3.1]: https://github.com/benlepa0/hubeau-ha/releases/tag/v0.3.1
 [0.3.0]: https://github.com/benlepa0/hubeau-ha/releases/tag/v0.3.0

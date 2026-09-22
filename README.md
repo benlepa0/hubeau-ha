@@ -43,10 +43,11 @@ Les seuils sont donc **relatifs à chaque station**, jamais absolus.
 - **Régime et rang** calculés sur la chronique de la station, du percentile 0
   au percentile 100 : d'*étiage sévère* à *crue majeure*.
 - **Détection des stations défaillantes.** Une station peut rester joignable
-  tout en ayant cessé de mesurer. Deux contrôles la démasquent : moins de
-  quatre valeurs distinctes sur douze heures, ou une hauteur nulle accompagnée
-  d'un débit franc, signe d'une station hors d'eau dont la courbe de tarage
-  invente un débit.
+  tout en ayant cessé de mesurer. Deux contrôles la signalent : moins de quatre
+  valeurs distinctes sur douze heures, et une hauteur nulle ou négative
+  accompagnée d'un débit franc. Le second est un indice, pas une preuve : les
+  hauteurs sont rapportées au zéro de l'échelle de la station, donc une valeur
+  négative ne veut pas dire un lit à sec.
 - **Carte Lovelace incluse**, sans ressource à déclarer dans le tableau de bord.
 - **Configuration par l'interface** : un rayon autour du domicile, puis une
   station dans la liste triée par distance. Autant de stations que voulu.
@@ -104,8 +105,17 @@ Une station suivie donne dix entités :
 
 La référence porte sur les maximums journaliers pour la hauteur et sur les
 moyennes journalières pour le débit ; le rang compare la mesure instantanée à
-cette distribution. Les catégories de régime sont des repères propres au
-projet, **pas des seuils officiels de vigilance**.
+cette distribution. Les deux grandeurs ne sont donc pas lues avec la même
+règle, et **le rang de débit est surévalué en crue** : sur le Lez, une pointe
+au percentile 99 des pointes ressort au percentile 99,6 des moyennes. Le
+capteur binaire *Crue* s'appuie sur la hauteur quand elle existe, où le
+compte de quatre jours par an se vérifie, 3,7 mesurés sur trente ans.
+
+Les catégories de régime sont des repères propres au projet, **pas des seuils
+officiels de vigilance** : les indices réglementaires français sont le QMNA5
+et les VCNx pour l'étiage, des périodes de retour pour les crues. Le détail
+des hypothèses, de leurs sources et de ce qui a été mesuré :
+[docs/HYPOTHESES.md][doc-hypotheses].
 
 ## 🌊 La carte
 
@@ -154,9 +164,11 @@ une.
   hauteur *maximale* journalière et le débit *moyen* journalier.
 - Les références demandent au moins **trois ans** de chronique. Une station
   récente n'en aura pas ; ses mesures restent exposées, sans lecture.
-- Les fortes valeurs de la chronique sont souvent qualifiées « douteuses » par
-  le producteur : au-delà d'un certain débit, la courbe de tarage est
-  extrapolée faute de jaugeage possible en crue.
+- **L'intégration ne filtre pas la qualification des données.** Hub'Eau publie
+  pour chaque valeur un statut et une qualification ; les références sont
+  calculées sur tout, y compris les 6 % de débits journaliers que le producteur
+  qualifie de douteux. Sur le Lez, le maximum de débit affiché en est un, et il
+  vaut deux fois et demie le plus fort débit qualifié bon.
 - Toutes les stations ne publient pas le débit, et certaines cessent de publier
   sans le dire. Ce qui a été mesuré sur onze stations, et les trois défauts de
   diagnostic que la campagne a laissés ouverts : [docs/VERIFICATIONS.md][doc-verif].
@@ -199,6 +211,7 @@ Le journal des versions est dans [CHANGELOG.md][changelog], sous licence
 [doc-carte]: https://github.com/benlepa0/hubeau-ha/blob/main/docs/CARTE.md
 [doc-depannage]: https://github.com/benlepa0/hubeau-ha/blob/main/docs/DEPANNAGE.md
 [doc-verif]: https://github.com/benlepa0/hubeau-ha/blob/main/docs/VERIFICATIONS.md
+[doc-hypotheses]: https://github.com/benlepa0/hubeau-ha/blob/main/docs/HYPOTHESES.md
 [my-hacs]: https://my.home-assistant.io/redirect/hacs_repository/?owner=benlepa0&repository=hubeau-ha&category=integration
 [my-config]: https://my.home-assistant.io/redirect/config_flow_start/?domain=hubeau
 [capture]: https://raw.githubusercontent.com/benlepa0/hubeau-ha/main/docs/captures/carte.png

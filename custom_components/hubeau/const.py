@@ -45,8 +45,14 @@ DIVISEUR: Final = 1000.0
 
 # Seuils de lecture, exprimes en percentiles de la chronique de la station et
 # non en valeurs absolues : une meme hauteur ne veut pas dire la meme chose
-# sur le Lez et sur la Loire. Les bornes sont celles qu'emploie l'hydrologie
-# de terrain pour decrire un regime.
+# sur le Lez et sur la Loire.
+#
+# Ces bornes sont une **convention de ce projet**, verifiee le 2026-09-22 : la
+# demarche, classer une mesure dans la distribution journaliere de sa propre
+# station, est celle de la courbe des debits classes, mais les indices
+# reglementaires francais sont d'une autre nature. Les basses eaux se decrivent
+# par le QMNA5 et les VCNx, les hautes eaux par des periodes de retour ajustees
+# sur des maximums annuels. Voir docs/HYPOTHESES.md.
 NIVEAUX: Final = (
     ("etiage_severe", 5.0),
     ("etiage", 25.0),
