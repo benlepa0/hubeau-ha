@@ -87,6 +87,8 @@ class ApiHubEau:
             suivant = rep.get("next")
             pages += 1
             await asyncio.sleep(1.0)
+        if suivant:
+            raise ErreurHubEau("serie incomplete : limite de pagination atteinte")
         return lignes
 
     # -- Referentiel --------------------------------------------------------

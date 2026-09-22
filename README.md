@@ -1,5 +1,7 @@
 # Hub'Eau pour Home Assistant
 
+Dernière révision : 2026-09-21.
+
 Suivi des cours d'eau français : hauteur, débit, et surtout **ce que ces
 chiffres veulent dire**.
 
@@ -34,27 +36,22 @@ mesurer. Deux contrôles la démasquent :
   débit franc signale une station hors d'eau. Ce même Lirou affiche 2,65 m³/s
   pour une hauteur de **−0,002 m**.
 
-## La chronique versée dans Home Assistant
+## Références historiques
 
-Trente ans de mesures ne serviraient qu'une fois — à calculer onze percentiles —
-puis dormiraient dans un fichier de cache, pendant que Home Assistant
-n'afficherait que ce qu'il a lui-même enregistré depuis l'installation.
+L'historique de la station sert uniquement à calculer les références :
+percentiles, médiane, moyenne et extrêmes. Ces résultats sont conservés dans un cache
+local et recalculés tous les trente jours. Le classement de la mesure actuelle
+ne dépend pas de la durée d'installation de Home Assistant ni de sa base
+`recorder` : à série de référence identique, le calcul donne le même résultat.
 
-L'intégration **verse donc la chronique journalière dans les statistiques long
-terme** du `recorder`, conservées indéfiniment. La station apparaît alors dans
-les graphiques natifs comme si elle y avait toujours été suivie. Sur le Lez à
-Lavalette : **369 mois depuis décembre 1995**, une pointe de hauteur à 4,40 m
-et un débit instantané maximal de **499,27 m³/s**.
+L'intégration n'importe aucune ancienne mesure dans les statistiques de Home
+Assistant. Celui-ci peut enregistrer normalement les nouvelles mesures des
+capteurs à partir de leur installation.
 
-Le débit dispose des trois valeurs journalières — moyenne, minimum, maximum —
-et l'écart entre elles est parlant : le 29 septembre 2014, la moyenne du jour
-valait 80 m³/s pour une pointe à 366. La hauteur n'est publiée qu'en maximum
-journalier ; les trois courbes s'y superposent donc, ce qui signale à l'œil
-qu'il n'y a qu'une valeur par jour. C'est d'ailleurs celle qui compte,
-puisque ce sont les pointes qui font les crues.
-
-Le versement n'a lieu qu'une fois, en tâche de fond, et ne retarde pas le
-démarrage.
+La référence porte sur les maximums journaliers pour la hauteur, et sur les
+moyennes journalières pour le débit. Le rang compare une mesure instantanée
+à cette distribution journalière ; les catégories sont des repères propres
+au projet, pas des seuils officiels de vigilance.
 
 ## Entités
 
@@ -99,3 +96,92 @@ mesures lisibles.
 ## Licence
 
 MIT.
+
+## Historique court
+
+- 2026-09-21 — Campagne de tests sur onze stations et simulations des pannes ;
+  calculs du bandeau vérifiés, limites de fraîcheur et de diagnostic documentées.
+
+- 2026-09-21 — Carte 0.3.3 : retrait des traînées blanches et des bulles ;
+  les vagues et la transition du niveau restent animées.
+
+- 2026-09-21 — Carte 0.3.4 : minimum, moyenne et maximum du bas de carte
+  deviennent des valeurs non cliquables.
+
+- 2026-09-21 — Intégration 0.2.0 : retrait de l'import des anciennes mesures
+  dans le recorder ; l'historique sert uniquement au calcul des références.
+
+- 2026-09-21 — Carte 0.4.0 : le bandeau affiche les minimum, moyenne et maximum
+  de la série historique de référence, sans requête au recorder. Pour la
+  hauteur, la série est constituée des maximums journaliers. Un ancien cache
+  sans moyenne est recalculé au prochain chargement.
+
+- 2026-09-21 — Versions 0.2.0 / 0.4.0 activées après redémarrage autorisé
+  de Home Assistant. Les dix entités de Lavalette sont disponibles et la
+  carte lit les références dans leurs attributs. Série de hauteur du
+  1996-01-01 au 2026-09-20 : minimum 0,184 m, moyenne 0,508 m, maximum
+  4,403 m (maximums journaliers). Les anciennes statistiques importées
+  restent en base ; aucun nettoyage du recorder n'a été effectué.
+
+- 2026-09-21 — Correction 0.2.1 / carte 0.4.1 : le bandeau retrouve le minimum,
+  la moyenne arithmétique et le maximum des mesures de hauteur des sept derniers
+  jours, récupérées directement auprès de Hub'Eau toutes les quinze minutes.
+  Les références sur trente ans restent réservées au classement du niveau.
+  Aucun import historique ni accès au recorder pour ce bandeau.
+  Déploiement vérifié après redémarrage : 2 011 mesures disponibles sur la
+  fenêtre de sept jours, minimum 0,264 m, moyenne 0,272 m et maximum 0,293 m.
+
+## Vérifications sur plusieurs stations — 2026-09-21
+
+Le client déployé a été exécuté dans un processus isolé, sans ajouter de
+station à Home Assistant, sans import ni accès au recorder. Le script
+`outils/tester_stations.py` permet de reproduire les contrôles en lecture seule :
+
+```bash
+docker exec -i homeassistant python3 -u - < outils/tester_stations.py
+```
+
+Les onze stations dans un rayon de 25 km autour du centre de Montpellier
+ont été interrogées. Les minimums, moyennes et maximums des mesures disponibles
+sur sept jours concordent avec un calcul indépendant. Les références
+historiques ont été vérifiées pour Trinquat, Juvignac, Saint-Jean-de-Védas et
+le Lirou : extrêmes, moyenne et ordre des percentiles. Juvignac manque de
+recul ; Saint-Jean-de-Védas n'a pas de série journalière de débit disponible.
+
+| Station | Mesures de hauteur sur sept jours | Observation au moment du test |
+|---|---:|---|
+| Le Lez à Montpellier - Trinquat | 2009 | Mesures récentes ; références disponibles |
+| Le Lez à Montferrier-sur-Lez [Lavalette] | 2009 | Mesures récentes ; station déjà utilisée dans HA |
+| La Mosson à Juvignac | 161 | Dernière hauteur le 15 septembre ; résumé très partiel ; historique trop court |
+| Le Lez à Lattes [3ème écluse] | 2010 | Mesures récentes |
+| La Mosson à Lavérune | 0 | Aucune hauteur sur sept jours, aucun débit retourné |
+| La Mosson à Saint-Jean-de-Védas | 1997 | Hauteur disponible ; aucun débit retourné |
+| La Mosson [Ruisseau de l'Avy - affluent de la Mosson] à Grabels - Source Avy | 63 | Dernière hauteur le 17 septembre ; résumé partiel |
+| Le Salaison à Mauguio | 2009 | Mesures récentes |
+| Le Lez [source] à Saint-Clément-de-Rivière | 1997 | Mesures récentes |
+| Le Lirou au Triadou [Pont du Lien] | 2010 | Mesures récentes mais alerte de valeurs figées déclenchée |
+| [La Méditerranée] au Grau-du-Roi - Marégraphe de Port-Camargue | 1995 | Hauteur seule ; marégraphe, pas une rivière |
+
+Le rendu JavaScript avec un DOM simulé passe pour ces onze jeux de données,
+y compris les valeurs négatives et l'absence de débit. Il ne s'agit pas d'un
+test visuel dans un navigateur ni de onze installations complètes dans HA.
+Des simulations supplémentaires vérifient la cadence de quinze minutes,
+l'effacement du résumé après une panne, la reprise, la série vide, la valeur
+zéro, l'historique trop court et le refus d'une pagination incomplète.
+
+Limites identifiées, non corrigées pendant cette campagne :
+
+- Le bandeau ne signale pas explicitement une couverture partielle des sept
+  jours. Les dates et le nombre de mesures sont disponibles en attributs.
+- La fraîcheur est calculée sur la plus récente des deux grandeurs. Une
+  hauteur ancienne de 48 heures et un débit récent produisent actuellement
+  `obsolete = False` dans le cas simulé ; le contrôle devrait être distinct
+  pour la hauteur et le débit.
+- Une hauteur négative et un débit positif suffisent à déclencher l'alerte
+  d'incohérence. Ce critère n'est pas généralisable : la hauteur est relative
+  au zéro de l'échelle, comme le précise la
+  [documentation HydroPortail](https://hydro.eaufrance.fr/aide/la-station-hydrometrique).
+  Une série stable ne prouve pas non plus à elle seule une panne ; le message
+  actuel « la station répond mais ne mesure plus » est trop affirmatif.
+- Le choix des stations inclut le marégraphe de Port-Camargue, auquel les
+  catégories de régime fluvial ne sont pas adaptées.

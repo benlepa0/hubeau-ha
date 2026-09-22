@@ -1,7 +1,7 @@
 {
   "domain": "hubeau",
   "name": "Hub'Eau",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "documentation": "https://github.com/benlepa0/hubeau-ha",
   "issue_tracker": "https://github.com/benlepa0/hubeau-ha/issues",
   "codeowners": ["@benlepa0"],

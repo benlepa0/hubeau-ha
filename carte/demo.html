@@ -43,6 +43,9 @@
         unit_of_measurement: "m", lecture: c.fige ? "mesure douteuse"
           : (c.rang > 99 ? "dépasse environ un jour sur 1000"
              : c.rang > 50 ? "au-dessus de la médiane" : "dans le quart le plus bas"),
+        // Mesures recentes fictives pour illustrer le bandeau.
+        minimum_7_jours: 0.25, moyenne_7_jours: 0.28, maximum_7_jours: 0.32,
+        debut_reference: "1996-01-01", fin_reference: "2026-09-20",
         mediane_30_ans: 0.443, maximum_connu: 4.403,
         maximum_connu_le: "2014-10-06", annees_de_reference: 30.5,
         regime: c.regime, rang_percentile: Number(c.rang), capteur_fige: !!c.fige,

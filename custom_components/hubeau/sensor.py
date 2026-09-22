@@ -37,13 +37,23 @@ class DescriptionHubEau(SensorEntityDescription):
 def _attributs_grandeur(nom: str) -> Callable[[EtatStation], dict]:
     def lire(etat: EtatStation) -> dict:
         g = getattr(etat, nom)
+        recentes = etat.sept_jours if nom == "hauteur" else {}
         if g.stats is None:
-            return {}
+            return dict(recentes)
         return {
+            **recentes,
             "rang_percentile": g.rang,
             "regime": g.niveau,
             "lecture": g.commentaire,
             "mediane_30_ans": g.stats.percentiles.get("50"),
+            "minimum_reference": g.stats.minimum,
+            "moyenne_reference": g.stats.moyenne,
+            "maximum_reference": g.stats.maximum,
+            "debut_reference": g.stats.debut,
+            "fin_reference": g.stats.fin,
+            "jours_reference": g.stats.jours,
+            "nature_reference": ("maximums_journaliers" if nom == "hauteur"
+                                  else "moyennes_journalieres"),
             "maximum_connu": g.stats.maximum,
             "maximum_connu_le": g.stats.maximum_date,
             "annees_de_reference": g.stats.annees,

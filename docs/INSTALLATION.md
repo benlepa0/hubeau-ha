@@ -32,16 +32,12 @@ Une sauvegarde du tableau de bord précède l'opération :
 Les statistiques sont en cache dans `.storage/hubeau.Y320002001.statistiques`
 et ne sont recalculées qu'une fois par mois.
 
-## Limite au démarrage
+## Historique et références
 
-Le graphique de la carte est **vide les premiers jours** : Home Assistant ne
-connaît pas le passé de ces capteurs et construit son historique au fil de
-l'eau. Il sera complet au bout d'une semaine.
-
-Hub'Eau conserve pourtant un mois glissant au pas fin. Injecter ce passé dans
-le `recorder` de Home Assistant est faisable — par `recorder.import_statistics`
-— mais c'est un travail à part, qui n'alimenterait d'ailleurs qu'une carte de
-statistiques et non `mini-graph-card`, laquelle lit l'historique d'états.
+Depuis la version 0.2.0, l'historique externe sert uniquement au calcul des
+références de la station. Il n'est plus importé dans le recorder de Home
+Assistant. Les statistiques déjà importées par la version précédente restent
+en base tant qu'un nettoyage distinct n'a pas été réalisé.
 
 ## Retrait
 

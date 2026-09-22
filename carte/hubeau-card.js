@@ -16,7 +16,7 @@
  * Aucune dependance, aucune compilation : un element personnalise et du SVG.
  */
 
-const VERSION = "0.3.2";
+const VERSION = "0.4.1";
 
 /* Reperes de l'echelle : percentile -> position verticale, de 0 en bas a 1
  * en haut. Les valeurs sont resserrees vers le haut parce que les crues sont
@@ -83,61 +83,30 @@ class CarteHubEau extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
     this._rendre();
-    this._septJours();
+    this._afficherSeptJours();
   }
 
   getCardSize() { return 5; }
 
-  /* Les extremes des sept derniers jours viennent des statistiques long terme
-   * du recorder, et non d'un parcours de l'historique detaille : celui-ci est
-   * purge au bout de quelques jours, alors que les statistiques sont
-   * conservees indefiniment. C'est aussi la table que l'integration alimente
-   * avec la chronique de la station.
-   *
-   * L'appel est rare -- au plus une fois par quart d'heure -- car il traverse
-   * la base de donnees. */
-  async _septJours() {
-    if (!this._hass?.callWS) return;
-    const maintenant = Date.now();
-    if (this._septLe && maintenant - this._septLe < 900000) return;
-    this._septLe = maintenant;
-    const depuis = new Date(maintenant - 7 * 86400000).toISOString();
-    try {
-      const rep = await this._hass.callWS({
-        type: "recorder/statistics_during_period",
-        start_time: depuis,
-        statistic_ids: [this._cfg.hauteur],
-        period: "day",
-        types: ["min", "max", "mean"],
-      });
-      const serie = rep?.[this._cfg.hauteur] || [];
-      if (!serie.length) { this._sept = null; return; }
-      const val = (k) => serie.map((x) => x[k]).filter((v) => v != null);
-      const mins = val("min"), maxs = val("max"), moys = val("mean");
-      this._sept = {
-        min: mins.length ? Math.min(...mins) : null,
-        max: maxs.length ? Math.max(...maxs) : null,
-        // Moyenne des moyennes journalieres : les jours ont le meme poids,
-        // ce qui est ce qu'on attend d'une moyenne sur sept jours.
-        moy: moys.length ? moys.reduce((a, b) => a + b, 0) / moys.length : null,
-        jours: serie.length,
-      };
-    } catch (err) {
-      this._sept = null;
-    }
-    this._afficherSept();
-  }
-
-  _afficherSept() {
-    const zone = this._racine?.querySelector(".sept");
+  /* Le bandeau lit les mesures des sept derniers jours, sans consulter le recorder. */
+  _afficherSeptJours() {
+    const zone = this._racine?.querySelector(".references");
     if (!zone) return;
-    const s = this._sept;
-    zone.classList.toggle("vide", !s || s.min == null);
-    if (!s || s.min == null) return;
-    const f = (v) => (v == null ? "—" : `${nombre(v, 2)} m`);
-    this._racine.querySelector("#s-min").textContent = f(s.min);
-    this._racine.querySelector("#s-moy").textContent = f(s.moy);
-    this._racine.querySelector("#s-max").textContent = f(s.max);
+    const attrs = this._hass?.states[this._cfg.hauteur]?.attributes || {};
+    const valeur = (v) => v == null || v === "" || !Number.isFinite(Number(v))
+      ? null : Number(v);
+    const mini = valeur(attrs.minimum_7_jours);
+    const moyenne = valeur(attrs.moyenne_7_jours);
+    const maxi = valeur(attrs.maximum_7_jours);
+    zone.classList.remove("vide");
+    const f = (v) => v == null ? "—" : `${nombre(v, 2)} m`;
+    this._racine.querySelector("#r-min").textContent = f(mini);
+    this._racine.querySelector("#r-moy").textContent = f(moyenne);
+    this._racine.querySelector("#r-max").textContent = f(maxi);
+    zone.title = "7 derniers jours : minimum, moyenne arithmétique et maximum des mesures disponibles";
+    if (attrs.debut_mesures_7_jours && attrs.fin_mesures_7_jours) {
+      zone.title += `, du ${attrs.debut_mesures_7_jours} au ${attrs.fin_mesures_7_jours}`;
+    }
   }
 
   /* -- construction, une seule fois ------------------------------------- */
@@ -176,9 +145,7 @@ class CarteHubEau extends HTMLElement {
           transition: height 1.2s cubic-bezier(.4,0,.2,1);
           overflow: hidden;
         }
-        /* La surface est un bandeau distinct, et non un SVG pose en haut du
-           bloc d'eau : celui-ci porte overflow:hidden pour contenir bulles et
-           filets, et decoupait donc les vagues, qui debordent par le haut. */
+        /* La surface distincte laisse les vagues deborder au-dessus de l'eau. */
         .surface { position: absolute; left: 0; right: 0; height: 20px;
                    overflow: hidden; pointer-events: none;
                    transition: bottom 1.2s cubic-bezier(.4,0,.2,1); }
@@ -196,62 +163,10 @@ class CarteHubEau extends HTMLElement {
         .onde2 { animation-duration: var(--t2, 13s); animation-direction: reverse; }
         @keyframes glisse { to { transform: translateX(-50%); } }
 
-        /* L'ecoulement : des trainees floues qui filent de gauche a droite,
-           d'autant plus vite que le debit est fort. */
-        .flux { position: absolute; inset: 0; }
-        .fil {
-          position: absolute; height: 4px; border-radius: 4px;
-          background: linear-gradient(90deg, transparent 0%,
-                      rgba(255,255,255,.9) 45%, rgba(255,255,255,.95) 60%,
-                      transparent 100%);
-          filter: blur(1.2px);
-          animation: file var(--vitesse, 7s) linear infinite;
-        }
-        @keyframes file {
-          0%   { transform: translateX(-30%); opacity: 0; }
-          12%  { opacity: 1; }
-          88%  { opacity: 1; }
-          100% { transform: translateX(calc(100vw + 30%)); opacity: 0; }
-        }
-
-        /* Les bulles derivent vers la droite, portees par le courant.
-           Les faire monter etait un contresens : dans une riviere, ce qui
-           renseigne sur la vitesse est ce qui defile, pas ce qui remonte. Une
-           legere ascension et une ondulation suffisent a eviter la ligne
-           droite, qui ferait mecanique.
-
-           La derive anime la propriete left, et non un translateX en
-           pourcentage : un pourcentage de translation se rapporte a la taille
-           de l'element, pas a celle de son conteneur. Des bulles larges de
-           quelques pixels ne parcouraient ainsi que quelques pixels. */
-        .bulles { position: absolute; inset: 0; }
-        .bulle {
-          position: absolute; border-radius: 50%;
-          background: radial-gradient(circle at 34% 28%,
-                      rgba(255,255,255,.95), rgba(255,255,255,.45) 55%,
-                      rgba(255,255,255,.12) 100%);
-          box-shadow: inset 0 0 0 .5px rgba(255,255,255,.45);
-          animation: derive var(--d, 7s) linear infinite;
-        }
-        @keyframes derive {
-          0%   { left: -8%;  transform: translateY(0)     scale(.75); opacity: 0; }
-          8%   { opacity: .95; }
-          35%  { transform: translateY(-5px) scale(1); }
-          65%  { transform: translateY(-9px)  scale(1.02); }
-          92%  { opacity: .8; }
-          100% { left: 106%; transform: translateY(-15px) scale(1.06); opacity: 0; }
-        }
-
         @media (prefers-reduced-motion: reduce) {
-          .onde, .fil, .bulle { animation: none; }
-          .fil, .bulle { opacity: .35; }
-          .bulle { left: 45%; }
+          .onde { animation: none; }
         }
-        :host([sans-animation]) .onde,
-        :host([sans-animation]) .fil,
-        :host([sans-animation]) .bulle { animation: none; }
-        :host([sans-animation]) .fil,
-        :host([sans-animation]) .bulle { opacity: .3; }
+        :host([sans-animation]) .onde { animation: none; }
 
         .reperes { position: absolute; inset: 0; pointer-events: none; }
         .repere { position: absolute; left: 0; right: 0; display: flex;
@@ -281,14 +196,14 @@ class CarteHubEau extends HTMLElement {
 
         .pied { display: grid; grid-template-columns: repeat(3, 1fr);
                 border-top: 1px solid var(--divider-color, rgba(255,255,255,.12)); }
-        .sept { position: relative; }
-        .sept::before {
+        .references { position: relative; }
+        .references::before {
           content: "7 derniers jours"; position: absolute; top: 5px; left: 0;
           right: 0; text-align: center; font-size: .58rem; opacity: .45;
           text-transform: uppercase; letter-spacing: .06em;
         }
-        .sept .case { padding-top: 22px; }
-        .sept.vide { display: none; }
+        .references .case { padding-top: 22px; }
+        .references.vide { display: none; }
         .case { padding: 9px 6px; text-align: center; }
         .case + .case { border-left: 1px solid
                         var(--divider-color, rgba(255,255,255,.12)); }
@@ -306,10 +221,7 @@ class CarteHubEau extends HTMLElement {
           <div class="regime"></div>
         </div>
         <div class="scene">
-          <div class="eau">
-            <div class="flux"></div>
-            <div class="bulles"></div>
-          </div>
+          <div class="eau"></div>
           <div class="surface">
             <svg viewBox="0 0 600 20" preserveAspectRatio="none">
               <path class="onde"       opacity=".55" fill="var(--eau)"></path>
@@ -330,10 +242,10 @@ class CarteHubEau extends HTMLElement {
           <div class="case"><div class="k">Tendance</div><div class="v" id="c-tend">—</div></div>
           <div class="case"><div class="k">Mesurée à</div><div class="v" id="c-age">—</div></div>
         </div>
-        <div class="pied sept vide">
-          <div class="case cliquable" data-cible="hauteur" tabindex="0" role="button"><div class="k">Minimum</div><div class="v" id="s-min">—</div></div>
-          <div class="case cliquable" data-cible="hauteur" tabindex="0" role="button"><div class="k">Moyenne</div><div class="v" id="s-moy">—</div></div>
-          <div class="case cliquable" data-cible="hauteur" tabindex="0" role="button"><div class="k">Maximum</div><div class="v" id="s-max">—</div></div>
+        <div class="pied references vide">
+          <div class="case"><div class="k">Minimum</div><div class="v" id="r-min">—</div></div>
+          <div class="case"><div class="k">Moyenne</div><div class="v" id="r-moy">—</div></div>
+          <div class="case"><div class="k">Maximum</div><div class="v" id="r-max">—</div></div>
         </div>
       </ha-card>`;
 
@@ -343,46 +255,6 @@ class CarteHubEau extends HTMLElement {
     // reprise de la boucle.
     [[10, 0], [7, 30]].forEach(([a, dec], i) => {
       chemins[i].setAttribute("d", this._onde(a, dec));
-    });
-
-    const flux = this._racine.querySelector(".flux");
-    // Les filets sont repartis en profondeur, plus longs et plus rapides pres
-    // de la surface : c'est ainsi que se comporte un ecoulement reel.
-    [[8, 90, 4.2], [20, 130, 3.4], [33, 70, 4.8], [46, 150, 3.0],
-     [58, 80, 4.4], [71, 110, 3.6], [84, 60, 5.0]].forEach(([haut, large, ret], i) => {
-      const f = document.createElement("div");
-      f.className = "fil";
-      f.style.top = `${haut}%`;
-      f.style.width = `${large}px`;
-      f.style.animationDelay = `${-ret}s`;
-      // Plus on descend, plus le filet s'estompe : la lumiere ne penetre pas.
-      f.style.opacity = 0.85 - (haut / 100) * 0.45;
-      flux.appendChild(f);
-    });
-
-    const bulles = this._racine.querySelector(".bulles");
-    // Profondeur, taille, part de vitesse. Une veine d'eau ne va pas a la
-    // meme allure partout : elle est freinee par le fond et par les berges,
-    // et la surface file plus vite. Les bulles profondes trainent donc, ce
-    // qui donne au courant son epaisseur.
-    const GRAINS = [
-      [10, 5.5, 1.00], [17, 3.0, 0.95], [24, 7.0, 0.92], [32, 4.0, 0.88],
-      [39, 2.5, 0.85], [47, 6.0, 0.80], [54, 3.5, 0.76], [61, 5.0, 0.72],
-      [68, 2.5, 0.68], [74, 4.5, 0.63], [80, 3.0, 0.58], [86, 6.0, 0.54],
-      [91, 2.5, 0.50], [95, 4.0, 0.46],
-    ];
-    GRAINS.forEach(([profondeur, taille, part], i) => {
-      const b = document.createElement("div");
-      b.className = "bulle";
-      b.style.top = `${profondeur}%`;
-      b.style.width = `${taille}px`;
-      b.style.height = `${taille}px`;
-      b.dataset.part = part;
-      // Un depart etale dans le temps, sinon toutes les bulles traversent en
-      // rang, comme un rideau.
-      b.style.animationDelay = `${-(i * 0.77).toFixed(2)}s`;
-      b.style.opacity = 0.9 - (profondeur / 100) * 0.45;
-      bulles.appendChild(b);
     });
 
     /* Ouvrir la fiche d'une entite depuis la carte.
@@ -477,13 +349,6 @@ class CarteHubEau extends HTMLElement {
     if (Number.isFinite(debit) && debit > 0) {
       const t = Math.min(1, Math.max(0, (Math.log10(debit) + 1) / 3.3));
       duree = 8 - t * 6.5;
-    }
-    carte.style.setProperty("--vitesse", `${duree.toFixed(2)}s`);
-    // Chaque bulle recoit sa propre duree : celles du fond mettent presque
-    // deux fois plus longtemps a traverser que celles de surface.
-    for (const b of this._racine.querySelectorAll(".bulle")) {
-      const part = Number(b.dataset.part) || 1;
-      b.style.setProperty("--d", `${(duree / part).toFixed(2)}s`);
     }
     // Les vagues suivent le courant, mais de loin : une surface n'accelere
     // pas autant que la veine d'eau qui la porte.

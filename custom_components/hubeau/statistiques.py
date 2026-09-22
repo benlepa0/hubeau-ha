@@ -16,7 +16,7 @@ from __future__ import annotations
 import bisect
 import logging
 from dataclasses import dataclass, asdict
-from datetime import date
+from datetime import date, timedelta
 
 from .const import NIVEAUX
 
@@ -39,6 +39,7 @@ class Statistiques:
     maximum: float
     maximum_date: str
     minimum: float
+    moyenne: float | None = None
 
     def vers_dict(self) -> dict:
         return asdict(self)
@@ -149,6 +150,7 @@ def calculer(serie: list[tuple[date, float]]) -> Statistiques | None:
         maximum=round(plus_haut[1], 3),
         maximum_date=plus_haut[0].isoformat(),
         minimum=round(valeurs[0], 3),
+        moyenne=round(sum(valeurs) / n, 3),
     )
 
 
@@ -213,3 +215,24 @@ def hauteur_incoherente(hauteur: float | None, debit: float | None) -> bool:
     if hauteur is None or debit is None:
         return False
     return hauteur <= 0.0 and debit > 0.05
+
+
+def resume_sept_jours(serie: list[tuple], maintenant) -> dict:
+    """Resume des mesures disponibles sur les 168 dernieres heures.
+
+    La moyenne est arithmetique, chaque mesure a le meme poids.
+    Les dates dupliquees ne doivent pas surponderer une mesure.
+    """
+    debut = maintenant - timedelta(days=7)
+    mesures = {d: v for d, v in serie if debut <= d <= maintenant}
+    if not mesures:
+        return {}
+    valeurs = list(mesures.values())
+    return {
+        "minimum_7_jours": round(min(valeurs), 4),
+        "moyenne_7_jours": round(sum(valeurs) / len(valeurs), 4),
+        "maximum_7_jours": round(max(valeurs), 4),
+        "mesures_7_jours": len(valeurs),
+        "debut_mesures_7_jours": min(mesures).isoformat(),
+        "fin_mesures_7_jours": max(mesures).isoformat(),
+    }

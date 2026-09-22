@@ -72,6 +72,7 @@ class EtatStation:
     cours_eau: str
     latitude: float | None = None
     longitude: float | None = None
+    sept_jours: dict = field(default_factory=dict)
     hauteur: Grandeur = field(default_factory=Grandeur)
     debit: Grandeur = field(default_factory=Grandeur)
 
@@ -133,6 +134,7 @@ class CoordinateurHubEau(DataUpdateCoordinator[EtatStation]):
                                    f"{DOMAINE}.{code}.statistiques")
         self._stats_chargees = False
         self._stats_le: datetime | None = None
+        self._sept_le: datetime | None = None
 
     # -- statistiques de reference -----------------------------------------
 
@@ -153,14 +155,17 @@ class CoordinateurHubEau(DataUpdateCoordinator[EtatStation]):
                 if cache.get("calcule_le") else None
             frais = calcule_le and (dt_util.utcnow() - calcule_le
                                     < INTERVALLE_STATISTIQUES)
+            complet = True
             for nom, grandeur in (("hauteur", self.etat.hauteur),
                                   ("debit", self.etat.debit)):
                 brut = cache.get(nom)
                 if brut:
                     grandeur.stats = stats_mod.Statistiques.depuis_dict(brut)
+                    if grandeur.stats.moyenne is None:
+                        complet = False
             self._stats_chargees = True
             self._stats_le = calcule_le
-            if frais:
+            if frais and complet:
                 return
 
         await self._recalculer_statistiques()
@@ -193,19 +198,22 @@ class CoordinateurHubEau(DataUpdateCoordinator[EtatStation]):
         self._stats_chargees = True
         self._stats_le = dt_util.utcnow()
 
-    # -- versement de la chronique ------------------------------------------
-
-    async def historique_deja_verse(self) -> bool:
-        """Le versement n'a lieu qu'une fois : il porte sur des milliers de
-        journees, et Home Assistant conserve ses statistiques indefiniment."""
-        cache = await self._store.async_load() or {}
-        return bool(cache.get("historique_verse"))
-
-    async def marquer_historique_verse(self, resultats: dict) -> None:
-        cache = await self._store.async_load() or {}
-        cache["historique_verse"] = {
-            "le": dt_util.utcnow().isoformat(), "jours": resultats}
-        await self._store.async_save(cache)
+    async def _charger_sept_jours(self) -> None:
+        """Mesures recentes de la source, sans lecture ni ecriture du recorder."""
+        maintenant = dt_util.utcnow()
+        if self._sept_le and maintenant - self._sept_le < timedelta(minutes=15):
+            return
+        self._sept_le = maintenant
+        try:
+            serie = await self.api.serie_recente(
+                self.code, GRANDEUR_HAUTEUR, heures=7 * 24)
+            self.etat.sept_jours = stats_mod.resume_sept_jours(serie, maintenant)
+        except Exception:
+            # Le bandeau ne doit ni afficher un ancien resume comme actuel,
+            # ni rendre indisponibles les mesures en direct de la station.
+            self.etat.sept_jours = {}
+            _LOGGER.warning("%s : resume sur sept jours indisponible", self.code,
+                            exc_info=True)
 
     # -- cycle courant ------------------------------------------------------
 
@@ -230,4 +238,5 @@ class CoordinateurHubEau(DataUpdateCoordinator[EtatStation]):
                                   self.code, grandeur_code, HEURES_DETECTION_FIGE)
         except ErreurHubEau as err:
             raise UpdateFailed(str(err)) from err
+        await self._charger_sept_jours()
         return self.etat
