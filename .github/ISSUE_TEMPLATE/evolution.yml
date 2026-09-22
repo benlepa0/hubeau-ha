@@ -1,0 +1,21 @@
+name: Évolution
+description: Proposer une amélioration
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: besoin
+    attributes:
+      label: Le besoin
+      description: Ce que vous cherchez à obtenir, plutôt que la solution envisagée.
+    validations:
+      required: true
+  - type: textarea
+    id: piste
+    attributes:
+      label: Piste envisagée
+  - type: checkboxes
+    id: source
+    attributes:
+      label: Données
+      options:
+        - label: La donnée nécessaire existe dans l'API Hub'Eau (hydrométrie).

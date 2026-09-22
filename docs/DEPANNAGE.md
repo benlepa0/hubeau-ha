@@ -1,7 +1,7 @@
-# Vérification, cache et retrait
+# Dépannage, cache et retrait
 
-Ce que l'on regarde après avoir ajouté une station, où vivent les données, et
-comment tout défaire. L'installation elle-même est décrite dans le
+Ce que l'on regarde quand quelque chose cloche, où vivent les données, et
+comment tout défaire. L'installation est décrite dans le
 [README](../README.md).
 
 ## Après l'ajout d'une station

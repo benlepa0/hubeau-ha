@@ -15,6 +15,8 @@ trente et un jours appliqué par défaut aux fichiers statiques, les correctifs
 de la carte restaient invisibles pendant des semaines dans le navigateur, et
 plus encore dans l'application Companion.
 
+![Les cinq etats de la carte, theme clair](captures/carte-clair.png)
+
 ## Le parti pris
 
 Une rivière ne se lit pas sur une échelle linéaire. Sur le Lez, la médiane
@@ -86,6 +88,9 @@ sans redémarrer quoi que ce soit :
 ```bash
 python3 -m http.server 8777 --directory outils
 ```
+
+`outils/captures.sh` refait les images de cette page et du README à partir de
+cette même démonstration, dans un Chromium sans interface.
 
 La page charge le fichier depuis `custom_components/hubeau/frontend/`, c'est
 donc bien la carte livrée qui est affichée, et non une copie.

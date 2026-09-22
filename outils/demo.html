@@ -62,8 +62,13 @@
   });
 
   // Le theme suit le parametre d'URL, pour pouvoir capturer les deux.
-  if (new URLSearchParams(location.search).get("theme") === "clair") {
+  // ?capture retire le bouton de bascule, qui n'a rien a faire sur une image.
+  const parametres = new URLSearchParams(location.search);
+  if (parametres.get("theme") === "clair") {
     document.body.classList.add("clair");
+  }
+  if (parametres.has("capture")) {
+    document.querySelector(".bascule").remove();
   }
   customElements.whenDefined("hubeau-card").then(() => {
     for (const [titre, cas] of CAS) {

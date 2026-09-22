@@ -1,0 +1,42 @@
+name: Anomalie
+description: Signaler un comportement incorrect
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de passer d'abord par [docs/DEPANNAGE.md](https://github.com/benlepa0/hubeau-ha/blob/main/docs/DEPANNAGE.md).
+        Une station peut rester joignable tout en ayant cessé de mesurer : ce cas est attendu et signalé par l'intégration.
+  - type: input
+    id: station
+    attributes:
+      label: Code de la station
+      description: Visible dans les attributs de l'entité, par exemple `Y320002001`.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version de l'intégration
+      placeholder: "0.3.0"
+    validations:
+      required: true
+  - type: input
+    id: ha
+    attributes:
+      label: Version de Home Assistant
+      placeholder: "2026.9.3"
+    validations:
+      required: true
+  - type: textarea
+    id: attendu
+    attributes:
+      label: Ce qui était attendu, et ce qui s'est produit
+    validations:
+      required: true
+  - type: textarea
+    id: journal
+    attributes:
+      label: Journal
+      description: Les lignes `custom_components.hubeau` du journal de Home Assistant.
+      render: text

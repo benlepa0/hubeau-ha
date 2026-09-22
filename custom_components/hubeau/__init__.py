@@ -1,9 +1,10 @@
 """Integration Hub'Eau : hydrometrie des cours d'eau francais.
 
-Les donnees viennent de l'API publique Hub'Eau, operee par l'Office francais
-de la biodiversite, sans cle ni compte. Ce que cette integration ajoute aux
-mesures brutes, c'est leur *lecture* : une hauteur ne veut rien dire seule,
-elle se lit rapportee a la chronique de sa propre station.
+Les donnees viennent de l'API publique Hub'Eau -- portail de l'OFB et du BRGM,
+sans cle ni compte -- et sont produites par le Service central Vigicrues. Ce
+que cette integration ajoute aux mesures brutes, c'est leur *lecture* : une
+hauteur ne veut rien dire seule, elle se lit rapportee a la chronique de sa
+propre station.
 """
 
 from __future__ import annotations

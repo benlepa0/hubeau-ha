@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Vigilance crues
+    url: https://www.vigicrues.gouv.fr/
+    about: Cette intégration n'est pas un outil d'alerte. Pour la vigilance officielle, voir Vigicrues.
+  - name: Données manquantes ou fausses à la source
+    url: https://hubeau.eaufrance.fr/page/contact
+    about: Une station qui ne publie plus, ou publie des valeurs aberrantes, relève du producteur des données.
