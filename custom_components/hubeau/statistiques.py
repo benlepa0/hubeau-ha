@@ -18,7 +18,7 @@ import logging
 from dataclasses import dataclass, asdict
 from datetime import date, timedelta
 
-from .const import NIVEAUX
+from .const import JOURS_DE_SOUTIEN, NIVEAUX
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,6 +40,9 @@ class Statistiques:
     maximum_date: str
     minimum: float
     moyenne: float | None = None
+    # Grandeur elaboree d'ou vient la reference : HIXnJ, QIXnJ ou QmnJ. Absente
+    # des caches anterieurs a la version 0.4.0, qui sont alors recalcules.
+    source: str | None = None
 
     def vers_dict(self) -> dict:
         return asdict(self)
@@ -47,6 +50,19 @@ class Statistiques:
     @classmethod
     def depuis_dict(cls, d: dict) -> "Statistiques":
         return cls(**d)
+
+    @property
+    def percentile_fiable_max(self) -> float:
+        """Dernier percentile qui s'appuie sur assez de jours au-dessus de lui.
+
+        Un percentile 99,9 calcule sur trois ans ne repose que sur un jour :
+        la classe existe, mais elle ne dit rien. On expose donc jusqu'ou la
+        chronique porte vraiment, plutot que de laisser croire a une precision
+        que sa longueur ne permet pas.
+        """
+        soutenus = [float(p) for p in self.percentiles
+                    if self.jours * (1.0 - float(p) / 100.0) >= JOURS_DE_SOUTIEN]
+        return max(soutenus) if soutenus else 50.0
 
     # -- lecture d'une mesure ----------------------------------------------
 
@@ -124,7 +140,8 @@ class Statistiques:
         return None if part <= 0 else 1.0 / part
 
 
-def calculer(serie: list[tuple[date, float]]) -> Statistiques | None:
+def calculer(serie: list[tuple[date, float]],
+             source: str | None = None) -> Statistiques | None:
     """Percentiles d'une chronique journaliere. None si elle est trop courte."""
     if len(serie) < JOURS_MINIMUM:
         _LOGGER.warning(
@@ -140,7 +157,8 @@ def calculer(serie: list[tuple[date, float]]) -> Statistiques | None:
         return round(valeurs[i], 3)
 
     plus_haut = max(serie, key=lambda kv: kv[1])
-    return Statistiques(
+    stats = Statistiques(
+        source=source,
         jours=n,
         annees=round(n / 365.25, 1),
         debut=min(serie)[0].isoformat(),
@@ -152,6 +170,14 @@ def calculer(serie: list[tuple[date, float]]) -> Statistiques | None:
         minimum=round(valeurs[0], 3),
         moyenne=round(sum(valeurs) / n, 3),
     )
+
+    plafond = stats.percentile_fiable_max
+    if plafond < max(seuil for _, seuil in NIVEAUX if seuil < 100.0):
+        _LOGGER.warning(
+            "chronique de %d jours : les classes au-dela du percentile %s "
+            "ne s'appuient pas sur dix jours de mesures, elles sont a lire "
+            "comme un ordre de grandeur", n, plafond)
+    return stats
 
 
 def tendance(serie: list[tuple]) -> float | None:

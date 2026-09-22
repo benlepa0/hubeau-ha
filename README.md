@@ -41,7 +41,8 @@ Les seuils sont donc **relatifs à chaque station**, jamais absolus.
 ## ✨ Fonctionnalités
 
 - **Régime et rang** calculés sur la chronique de la station, du percentile 0
-  au percentile 100 : d'*étiage sévère* à *crue majeure*.
+  au percentile 100 : d'*étiage sévère* à *crue majeure*. Seules entrent dans
+  la référence les valeurs que le producteur a validées.
 - **Détection des stations défaillantes.** Une station peut rester joignable
   tout en ayant cessé de mesurer. Deux contrôles la signalent : moins de quatre
   valeurs distinctes sur douze heures, et une hauteur nulle ou négative
@@ -99,17 +100,16 @@ Une station suivie donne dix entités :
 | Tendance | cm/h, par régression sur 12 h |
 | Dernière mesure | horodatage de la dernière valeur publiée |
 | Âge de la mesure | minutes écoulées depuis |
-| Crue *(binaire)* | au-delà du percentile 99, soit environ 4 jours par an |
+| Crue *(binaire)* | au-delà du percentile 99, soit 3,7 jours par an mesurés sur le Lez |
 | Données obsolètes *(binaire)* | plus de 2 h sans mesure |
 | Capteur figé *(binaire)* | station immobile ou incohérente |
 
-La référence porte sur les maximums journaliers pour la hauteur et sur les
-moyennes journalières pour le débit ; le rang compare la mesure instantanée à
-cette distribution. Les deux grandeurs ne sont donc pas lues avec la même
-règle, et **le rang de débit est surévalué en crue** : sur le Lez, une pointe
-au percentile 99 des pointes ressort au percentile 99,6 des moyennes. Le
-capteur binaire *Crue* s'appuie sur la hauteur quand elle existe, où le
-compte de quatre jours par an se vérifie, 3,7 mesurés sur trente ans.
+La référence porte sur les **maximums journaliers** pour la hauteur et sur les
+**pointes journalières** pour le débit : deux séries de même nature que la
+mesure instantanée qu'on vient y classer. Les valeurs que le producteur n'a
+pas validées, ou qu'il qualifie de douteuses, en sont écartées. Sur le Lez,
+l'alerte de crue se déclenche alors 3,7 jours par an pour l'une comme pour
+l'autre, ce qui est le compte annoncé.
 
 Les catégories de régime sont des repères propres au projet, **pas des seuils
 officiels de vigilance** : les indices réglementaires français sont le QMNA5
@@ -164,11 +164,12 @@ une.
   hauteur *maximale* journalière et le débit *moyen* journalier.
 - Les références demandent au moins **trois ans** de chronique. Une station
   récente n'en aura pas ; ses mesures restent exposées, sans lecture.
-- **L'intégration ne filtre pas la qualification des données.** Hub'Eau publie
-  pour chaque valeur un statut et une qualification ; les références sont
-  calculées sur tout, y compris les 6 % de débits journaliers que le producteur
-  qualifie de douteux. Sur le Lez, le maximum de débit affiché en est un, et il
-  vaut deux fois et demie le plus fort débit qualifié bon.
+- **Une station dont rien n'est validé n'a pas de références.** Les valeurs
+  brutes, corrigées ou qualifiées douteuses sont écartées, comme le fait
+  HydroPortail pour ses analyses publiques. Quelques stations ne publient que
+  des données brutes, tel le marégraphe de Port-Camargue : elles gardent leurs
+  mesures en direct, sans lecture statistique. Le journal le dit alors
+  explicitement.
 - Toutes les stations ne publient pas le débit, et certaines cessent de publier
   sans le dire. Ce qui a été mesuré sur onze stations, et les trois défauts de
   diagnostic que la campagne a laissés ouverts : [docs/VERIFICATIONS.md][doc-verif].

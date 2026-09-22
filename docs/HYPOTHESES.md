@@ -1,6 +1,7 @@
 # Hypothèses scientifiques, sources et vérifications
 
-Vérification du 2026-09-22. Chaque hypothèse de l'intégration est confrontée à
+Vérification du 2026-09-22. Les trois correctifs qu'elle a fait apparaître
+sont appliqués depuis la version 0.4.0 ; chaque section dit ce qui a changé. Chaque hypothèse de l'intégration est confrontée à
 la source officielle, puis, quand c'est possible, mesurée sur la chronique
 complète du Lez à Montferrier-sur-Lez (Lavalette, `Y320002001`), du
 1996-01-01 au 2026-09-21 : 11 180 débits journaliers et 11 133 hauteurs
@@ -24,10 +25,12 @@ variables](https://www.hydro.eaufrance.fr/aide/donnees-et-noms-des-variables) :
 `Q` débit, `H` hauteur, `i` instantané, `m` moyen, `J` journalier, `X`
 maximum, `N` minimum.
 
-**Verdict : exact, mais dissymétrique.** La hauteur du moment est classée
-parmi des **maximums** journaliers, le débit du moment parmi des **moyennes**
-journalières. Les deux grandeurs ne sont donc pas lues avec la même règle, et
-le débit est le seul des deux à être comparé à une série lissée.
+**Verdict : exact, mais dissymétrique. Corrigé en 0.4.0.** La hauteur du
+moment était classée parmi des **maximums** journaliers, le débit du moment
+parmi des **moyennes** journalières : le débit était le seul des deux à être
+comparé à une série lissée. La référence de débit est désormais `QIXnJ`, la
+pointe journalière, avec repli sur `QmnJ` pour les stations qui ne la publient
+pas.
 
 **Mesure.** Sur le Lez, le débit de pointe journalier vaut de 1,2 à 2,8 fois
 le débit moyen du même jour selon l'endroit de la distribution :
@@ -50,10 +53,11 @@ affiché est donc systématiquement surévalué en crue.
 
 **La source.** Arithmétique : 1 % de 365,25 jours vaut 3,65 jours.
 
-**Verdict : vrai pour la hauteur, faux quand le débit prend le relais.**
-Le capteur binaire s'appuie sur la grandeur principale, et l'intégration
-préfère la hauteur quand elle existe. Ce choix est lui-même fondé, voir le
-point 4.
+**Verdict : vrai pour la hauteur, faux quand le débit prenait le relais.
+Corrigé en 0.4.0.** Le capteur binaire s'appuie sur la grandeur principale, et
+l'intégration préfère la hauteur quand elle existe, choix lui-même fondé, voir
+le point 4. Depuis le passage à `QIXnJ`, les deux grandeurs donnent la même
+fréquence.
 
 **Mesure**, seuil pris au percentile 99 de la chronique de la station :
 
@@ -63,8 +67,9 @@ point 4.
 | débit de pointe, classé dans les moyennes journalières | 23,836 m³/s | **6,5** |
 | débit de pointe, classé dans les pointes journalières | 35,571 m³/s | 3,7 |
 
-La dernière ligne montre le correctif : prendre `QIXnJ` comme référence de
-débit rendrait à l'alerte la fréquence annoncée.
+La dernière ligne est le correctif appliqué. Après passage à `QIXnJ` et
+filtrage de la qualification, l'alerte se déclenche **3,7 jours par an sur la
+hauteur comme sur le débit**, mesuré sur la chronique complète.
 
 ## 3. Les seuils de régime
 
@@ -130,7 +135,11 @@ corrigée, 12 pré-validée, 16 validée). La note méthodologique d'HydroPortai
 demande de choisir « le statut des données : prendre le maximum possible sur
 l'Hydroportail grand public, à savoir "données pré-validées et validées" ».
 
-**Verdict : l'intégration mélange ce que le producteur distingue.**
+**Verdict : l'intégration mélangeait ce que le producteur distingue. Corrigé
+en 0.4.0.** Les séries de référence ne retiennent plus que les statuts
+« pré-validée » et « validée », et écartent la qualification « douteuse ». Un
+code absent ne fait pas rejeter la valeur : toutes les stations ne
+renseignent pas ces champs.
 
 **Mesure** sur le Lez :
 
@@ -179,10 +188,14 @@ des débits classés. HydroPortail conditionne ses analyses publiques à ce que
 « le nombre de données pré-validées et validées est suffisant », sans donner
 de seuil.
 
-**Verdict : choix de projet, assumé.** Sur trois ans, le percentile 99 ne
-repose que sur une dizaine de jours et le percentile 99,9 sur un seul. Les
-classes hautes n'ont alors pas de sens statistique, ce que l'intégration
-n'indique pas à l'utilisateur.
+**Verdict : choix de projet, assumé, mais désormais dit. Corrigé en 0.4.0.**
+Sur trois ans, le percentile 99 ne repose que sur une dizaine de jours et le
+percentile 99,9 sur un seul. L'intégration calcule maintenant jusqu'où la
+chronique porte vraiment, en exigeant dix jours de mesures au-dessus d'un
+percentile pour le tenir pour soutenu, l'expose dans l'attribut
+`reference_fiable_jusqu_au_percentile` et l'écrit au journal. Sur le Lez,
+la référence porte jusqu'au percentile 99,9 ; sur le Lez à Trinquat, ouvert
+en 2022, jusqu'au percentile 99 seulement.
 
 ## 8. Les points vérifiés sans réserve
 
@@ -197,17 +210,43 @@ n'indique pas à l'utilisateur.
 - **Les extrêmes affichés.** Maximum de hauteur 4,403 m le 2014-10-06 et
   médiane 0,443 m : retrouvés à l'identique sur la chronique complète.
 
-## Ce qui reste à corriger dans le code
+## Les correctifs, et leur effet mesuré
 
-Par ordre d'effet mesuré, et non fait à ce jour :
+Appliqués le 2026-09-22 en version 0.4.0, sur le Lez à Montferrier-sur-Lez.
 
-1. **Référence de débit sur `QIXnJ`**, avec repli sur `QmnJ` pour les stations
-   qui n'en publient pas. Rend à l'alerte de crue sa fréquence annoncée,
-   6,5 jours par an contre 3,7 attendus dans le cas où le débit porte la
-   lecture.
-2. **Filtrer sur `code_statut` et `code_qualification`**, à l'image du réglage
-   par défaut d'HydroPortail. Écarte 9 % de la chronique et, sur cette
-   station, un maximum de débit douteux qui vaut deux fois et demie le plus
-   fort débit qualifié bon.
-3. **Signaler une chronique trop courte** plutôt que publier des classes
-   hautes calculées sur quelques jours.
+| | avant | après |
+|---|---|---|
+| référence de hauteur | `HIXnJ`, 11 133 jours | `HIXnJ` validé, 10 629 jours |
+| médiane de hauteur | 0,443 m | 0,455 m |
+| maximum de hauteur | 4,403 m le 2014-10-06 | inchangé |
+| référence de débit | `QmnJ`, 11 180 jours | `QIXnJ` validé, 10 502 jours |
+| médiane de débit | 0,648 m³/s | 0,846 m³/s |
+| maximum de débit | 239,420 m³/s, **douteux** | 298,867 m³/s, validé, le 2001-10-09 |
+| percentile 99 du débit | 23,754 | 33,230 |
+| alerte de crue sur la hauteur | 3,7 jours par an | inchangé |
+| alerte de crue sur le débit | 6,5 jours par an | **3,7 jours par an** |
+
+Le maximum de débit affiché augmente tout en devenant plus sûr : l'ancien
+était une moyenne journalière que le producteur qualifiait de douteuse, le
+nouveau est une pointe qu'il a validée.
+
+**Ce que le filtrage coûte.** Il est strict, et une station dont le producteur
+ne valide rien perd ses références plutôt que d'en recevoir de fausses. Sur les
+onze stations testées autour de Montpellier :
+
+- sept gardent tout ce qui leur servait déjà ;
+- le Lirou au Triadou et le Lez à Lattes perdent leur référence de **débit**,
+  93 à 95 % de leurs valeurs n'étant ni validées ni qualifiées bonnes. Leur
+  hauteur, elle, reste référencée, et c'est elle qui porte la lecture ;
+- le marégraphe de Port-Camargue ne publie que des données brutes : il perd
+  toute référence. Les catégories de régime fluvial ne lui convenaient de
+  toute façon pas.
+
+Dans ces cas, le journal écrit que la chronique était assez longue mais que les
+valeurs ont été écartées, plutôt que de laisser croire à une station trop
+récente.
+
+**Mise à jour des installations existantes.** Les références en cache ne
+portent pas la grandeur dont elles viennent : elles sont donc recalculées au
+premier démarrage suivant la mise à jour, ce qui prend une trentaine de
+secondes par station.

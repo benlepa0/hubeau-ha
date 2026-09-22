@@ -18,6 +18,7 @@ from . import statistiques as stats_mod
 from .api import ApiHubEau, ErreurHubEau
 from .const import (
     ANNEES_REFERENCE,
+    ELAB_DEBIT_POINTE,
     DOMAINE,
     ELAB_DEBIT_MOYEN,
     ELAB_HAUTEUR_MAX,
@@ -161,7 +162,8 @@ class CoordinateurHubEau(DataUpdateCoordinator[EtatStation]):
                 brut = cache.get(nom)
                 if brut:
                     grandeur.stats = stats_mod.Statistiques.depuis_dict(brut)
-                    if grandeur.stats.moyenne is None:
+                    if (grandeur.stats.moyenne is None
+                            or grandeur.stats.source is None):
                         complet = False
             self._stats_chargees = True
             self._stats_le = calcule_le
@@ -174,26 +176,49 @@ class CoordinateurHubEau(DataUpdateCoordinator[EtatStation]):
         fin = dt_util.now().date()
         debut = date(fin.year - ANNEES_REFERENCE, 1, 1)
         paquet: dict[str, Any] = {"calcule_le": dt_util.utcnow().isoformat()}
-        for nom, grandeur_elab, cible in (
-            ("hauteur", ELAB_HAUTEUR_MAX, self.etat.hauteur),
-            ("debit", ELAB_DEBIT_MOYEN, self.etat.debit),
+        for nom, grandeurs, cible in (
+            ("hauteur", (ELAB_HAUTEUR_MAX,), self.etat.hauteur),
+            # La pointe d'abord : c'est une mesure instantanee qu'on vient
+            # classer. La moyenne journaliere ne sert que de repli, pour les
+            # stations qui ne publient pas QIXnJ.
+            ("debit", (ELAB_DEBIT_POINTE, ELAB_DEBIT_MOYEN), self.etat.debit),
         ):
-            try:
-                serie = await self.api.serie_journaliere(
-                    self.code, grandeur_elab, debut, fin)
-            except ErreurHubEau as err:
-                _LOGGER.warning("statistiques %s indisponibles pour %s : %s",
-                                nom, self.code, err)
-                continue
-            s = stats_mod.calculer(serie)
+            s = None
+            for grandeur_elab in grandeurs:
+                try:
+                    serie, ecartes = await self.api.serie_journaliere(
+                        self.code, grandeur_elab, debut, fin)
+                except ErreurHubEau as err:
+                    _LOGGER.warning("statistiques %s indisponibles pour %s : %s",
+                                    nom, self.code, err)
+                    continue
+                s = stats_mod.calculer(serie, source=grandeur_elab)
+                if s is not None:
+                    break
+                if ecartes and len(serie) + ecartes >= stats_mod.JOURS_MINIMUM:
+                    # Le cas existe : le maregraphe de Port-Camargue ne publie
+                    # que des donnees brutes, le Lirou au Triadou des valeurs
+                    # que le producteur ne valide pas. Mieux vaut pas de
+                    # reference qu'une reference batie sur ce qu'il recuse.
+                    _LOGGER.warning(
+                        "%s %s : chronique assez longue (%d jours) mais %d "
+                        "valeurs ecartees faute de statut ou de qualification "
+                        "suffisants ; aucune reference calculee",
+                        self.code, grandeur_elab, len(serie) + ecartes, ecartes)
+                if grandeur_elab is not grandeurs[-1]:
+                    _LOGGER.info(
+                        "%s : %s trop court, repli sur la grandeur suivante",
+                        self.code, grandeur_elab)
             if s is not None:
                 cible.stats = s
                 paquet[nom] = s.vers_dict()
                 _LOGGER.info(
-                    "%s : statistiques %s sur %d jours (%.1f ans), "
-                    "mediane %.3f, maximum %.3f le %s",
-                    self.code, nom, s.jours, s.annees,
-                    s.percentiles["50"], s.maximum, s.maximum_date)
+                    "%s : statistiques %s sur %d jours (%.1f ans) depuis %s, "
+                    "mediane %.3f, maximum %.3f le %s, fiables jusqu'au "
+                    "percentile %s",
+                    self.code, nom, s.jours, s.annees, s.source,
+                    s.percentiles["50"], s.maximum, s.maximum_date,
+                    s.percentile_fiable_max)
         await self._store.async_save(paquet)
         self._stats_chargees = True
         self._stats_le = dt_util.utcnow()

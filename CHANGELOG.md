@@ -3,6 +3,40 @@
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le
 versionnement est [sémantique](https://semver.org/lang/fr/).
 
+## [0.4.0] - 2026-09-22
+
+Les trois correctifs identifiés par la vérification de la 0.3.2 sont
+appliqués. Les références changent de valeur : elles sont recalculées au
+premier démarrage, une trentaine de secondes par station.
+
+### Modifié
+
+- **La référence de débit est la pointe journalière `QIXnJ`**, et non plus la
+  moyenne `QmnJ`, avec repli sur la moyenne pour les stations qui ne publient
+  pas de pointes. On classait une mesure instantanée dans une série lissée :
+  sur le Lez, l'alerte de crue se déclenchait 6,5 jours par an au lieu des 3,7
+  annoncés. Elle en est revenue à 3,7.
+- **Les valeurs non validées ou douteuses sont écartées des références**,
+  d'après le statut et la qualification publiés par Hub'Eau, comme le fait
+  HydroPortail pour ses analyses publiques. Sur le Lez, le maximum de débit
+  passe de 239,420 m³/s, une moyenne que le producteur qualifiait de douteuse,
+  à 298,867 m³/s, une pointe qu'il a validée.
+- **La portée statistique de la chronique est exposée.** Un percentile n'est
+  tenu pour soutenu que si dix jours de mesures le dépassent. Le résultat est
+  dans l'attribut `reference_fiable_jusqu_au_percentile` et dans le journal.
+
+### Ajouté
+
+- Attributs `grandeur_reference`, `reference_fiable_jusqu_au_percentile`, et
+  `nature_reference` qui distingue maintenant pointes et moyennes journalières.
+
+### Connu
+
+Une station dont le producteur ne valide rien perd ses références plutôt que
+d'en recevoir de fausses. Sur onze stations testées, deux perdent celles de
+débit et le marégraphe de Port-Camargue les perd toutes. Le journal en donne
+la raison.
+
 ## [0.3.2] - 2026-09-22
 
 ### Modifié
@@ -97,6 +131,7 @@ Première version, installée et vérifiée sur un serveur.
 Les versions antérieures à la 0.3.0 n'ont pas été publiées en release : le
 dépôt était encore privé.
 
+[0.4.0]: https://github.com/benlepa0/hubeau-ha/releases/tag/v0.4.0
 [0.3.2]: https://github.com/benlepa0/hubeau-ha/releases/tag/v0.3.2
 [0.3.1]: https://github.com/benlepa0/hubeau-ha/releases/tag/v0.3.1
 [0.3.0]: https://github.com/benlepa0/hubeau-ha/releases/tag/v0.3.0

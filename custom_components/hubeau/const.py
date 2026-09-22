@@ -36,8 +36,27 @@ GRANDEUR_HAUTEUR: Final = "H"
 
 # Grandeurs elaborees, pour l'historique. Hub'Eau ne conserve le pas fin
 # qu'un mois glissant ; au-dela seules ces valeurs journalieres existent.
-ELAB_DEBIT_MOYEN: Final = "QmnJ"      # debit moyen journalier
-ELAB_HAUTEUR_MAX: Final = "HIXnJ"     # hauteur maximale journaliere
+#
+# La reference de debit est la **pointe** journaliere et non la moyenne : c'est
+# une mesure instantanee qu'on vient y classer. Mesure du 2026-09-22 sur le Lez
+# a Lavalette : une pointe au percentile 99 des pointes ressortait au percentile
+# 99,6 des moyennes, et l'alerte de crue se declenchait 6,5 jours par an au lieu
+# des 3,7 annonces. Toutes les stations ne publient pas QIXnJ, d'ou le repli.
+ELAB_DEBIT_POINTE: Final = "QIXnJ"    # debit instantane maximal journalier
+ELAB_DEBIT_MOYEN: Final = "QmnJ"      # debit moyen journalier, en repli
+ELAB_HAUTEUR_MAX: Final = "HIXnJ"     # hauteur instantanee maximale journaliere
+
+# Qualite des donnees elaborees, nomenclatures Sandre 510 (statut) et 508
+# (qualification). HydroPortail restreint ses analyses publiques aux donnees
+# « pre-validees et validees » ; on fait de meme, et on ecarte en plus ce que
+# le producteur qualifie de douteux. Un code absent ne fait pas rejeter la
+# valeur : toutes les stations ne renseignent pas ces champs.
+STATUTS_RETENUS: Final = (12, 16)     # pre-validee, validee
+QUALIFICATION_DOUTEUSE: Final = 12    # « incertaine » chez Sandre
+
+# Un percentile n'a de sens que s'il s'appuie sur assez de jours au-dessus de
+# lui. En deca, la classe existe sans rien derriere.
+JOURS_DE_SOUTIEN: Final = 10
 
 # Hub'Eau exprime debits et hauteurs en unites entieres : litres par seconde
 # et millimetres. Tout le reste de l'integration travaille en m3/s et en m.

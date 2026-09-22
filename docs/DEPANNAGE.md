@@ -15,6 +15,10 @@ Trois signes que la lecture est correcte :
 
 - le **rang** est cohérent avec le régime annoncé : un régime *étiage* sous
   le percentile 25, une *crue* au-delà du 99 ;
+- l'attribut `grandeur_reference` vaut `HIXnJ` pour la hauteur et `QIXnJ` pour
+  le débit. Un `QmnJ` signale une station qui ne publie pas ses pointes
+  journalières, et `reference_fiable_jusqu_au_percentile` dit jusqu'où la
+  chronique porte ;
 - les **références** en attributs portent une profondeur crédible : nombre de
   jours, date du maximum, médiane ;
 - le journal ne contient aucune erreur `hubeau`.
@@ -24,19 +28,27 @@ a servi de station de mise au point :
 
 | | |
 |---|---|
-| hauteur | 0,272 m, rang 8,7 %, régime *étiage* |
-| débit | 0,247 m³/s, rang 24,4 % |
-| références de hauteur | 11 132 jours (30,5 ans), médiane 0,443 m, maximum 4,40 m le 2014-10-06 |
-| références de débit | 11 179 jours (30,6 ans), médiane 0,648 m³/s, maximum 239,42 m³/s le 2002-12-12 |
+| hauteur | 0,272 m, rang 7,5 %, régime *étiage* |
+| débit | 0,247 m³/s, rang 20,6 % |
+| références de hauteur | 10 629 jours (29,1 ans), médiane 0,455 m, maximum 4,403 m le 2014-10-06 |
+| références de débit | 10 502 jours (28,8 ans), médiane 0,846 m³/s, maximum 298,867 m³/s le 2001-10-09 |
 | premier démarrage | 36 s, historique compris |
 
+Relevé après la version 0.4.0, donc sur des références écrémées des valeurs
+non validées, et pour le débit sur les pointes journalières.
+
 Une station trop récente n'aura pas de références : ses mesures restent
-exposées, sans lecture. Juvignac, ouverte en 2022, est dans ce cas.
+exposées, sans lecture. Juvignac, ouverte en 2022, est dans ce cas. Une station
+dont le producteur ne valide pas les données non plus, et le journal le dit
+alors en toutes lettres : « chronique assez longue mais N valeurs écartées
+faute de statut ou de qualification suffisants ».
 
 ## Cache des références
 
 Les références sont conservées dans `.storage/hubeau.<code station>.statistiques`
-et recalculées tous les trente jours. Elles ne dépendent ni de la durée
+et recalculées tous les trente jours. Un cache antérieur à la version 0.4.0 ne
+porte pas la grandeur dont il vient : il est recalculé au premier démarrage qui
+suit la mise à jour. Elles ne dépendent ni de la durée
 d'installation de Home Assistant, ni du `recorder` : à série identique, le
 calcul redonne le même résultat.
 

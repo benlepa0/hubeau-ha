@@ -44,7 +44,7 @@ async def main():
                 if code in ('Y321002101','Y311000301','Y314001001','Y320003001'):
                     r['references']={}
                     for grandeur in ('HIXnJ','QmnJ'):
-                        serie=await api.serie_journaliere(code,grandeur,date(now.year-30,1,1),now.date())
+                        serie,_ecartes=await api.serie_journaliere(code,grandeur,date(now.year-30,1,1),now.date())
                         ref=stats.calculer(serie)
                         if ref:
                             valeurs=[v for _,v in serie]

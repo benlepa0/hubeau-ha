@@ -34,6 +34,14 @@ class DescriptionHubEau(SensorEntityDescription):
     attributs: Callable[[EtatStation], dict] | None = None
 
 
+# Ce que la reference contient vraiment, grandeur elaboree par grandeur.
+NATURE_REFERENCE = {
+    "HIXnJ": "maximums_journaliers",
+    "QIXnJ": "pointes_journalieres",
+    "QmnJ": "moyennes_journalieres",
+}
+
+
 def _attributs_grandeur(nom: str) -> Callable[[EtatStation], dict]:
     def lire(etat: EtatStation) -> dict:
         g = getattr(etat, nom)
@@ -52,8 +60,10 @@ def _attributs_grandeur(nom: str) -> Callable[[EtatStation], dict]:
             "debut_reference": g.stats.debut,
             "fin_reference": g.stats.fin,
             "jours_reference": g.stats.jours,
-            "nature_reference": ("maximums_journaliers" if nom == "hauteur"
-                                  else "moyennes_journalieres"),
+            "nature_reference": NATURE_REFERENCE.get(
+                g.stats.source, "inconnue"),
+            "grandeur_reference": g.stats.source,
+            "reference_fiable_jusqu_au_percentile": g.stats.percentile_fiable_max,
             "maximum_connu": g.stats.maximum,
             "maximum_connu_le": g.stats.maximum_date,
             "annees_de_reference": g.stats.annees,

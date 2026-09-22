@@ -24,7 +24,12 @@ from typing import Any
 import aiohttp
 from aiohttp import ClientResponseError, ClientTimeout
 
-from .const import DIVISEUR, URL_BASE
+from .const import (
+    DIVISEUR,
+    QUALIFICATION_DOUTEUSE,
+    STATUTS_RETENUS,
+    URL_BASE,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -165,14 +170,22 @@ class ApiHubEau:
 
     # -- Historique ---------------------------------------------------------
 
-    async def serie_journaliere(self, code: str, grandeur_elab: str,
-                                debut: date, fin: date) -> list[tuple[date, float]]:
-        """Valeurs journalieres entre deux dates.
+    async def serie_journaliere(
+        self, code: str, grandeur_elab: str, debut: date, fin: date,
+    ) -> tuple[list[tuple[date, float]], int]:
+        """Valeurs journalieres entre deux dates, ecremees de ce qui est douteux.
 
         Decoupee en tranches de cinq ans : l'API plafonne le nombre de lignes
         par reponse, et la decoupe evite d'enchainer trop de pages.
+
+        Chaque valeur porte un statut et une qualification, que l'integration
+        ignorait jusqu'a la version 0.4.0. Sur le Lez a Lavalette, cela faisait
+        entrer dans les references 6,1 % de debits que le producteur qualifie
+        lui-meme de douteux, dont le maximum de la chronique : 239 m3/s, quand
+        le plus fort debit qualifie bon vaut 94 m3/s.
         """
         sorties: list[tuple[date, float]] = []
+        ecartes = 0
         an = debut.year
         while an <= fin.year:
             borne = min(an + 4, fin.year)
@@ -181,19 +194,41 @@ class ApiHubEau:
                 "date_debut_obs_elab": f"{an}-01-01",
                 "date_fin_obs_elab": f"{borne}-12-31",
                 "size": 5000, "sort": "asc",
-                "fields": "date_obs_elab,resultat_obs_elab",
+                "fields": "date_obs_elab,resultat_obs_elab,"
+                          "code_statut,code_qualification",
             })
             for o in rep.get("data", []):
                 v = o.get("resultat_obs_elab")
-                if v is not None:
-                    sorties.append((date.fromisoformat(o["date_obs_elab"]),
-                                    v / DIVISEUR))
+                if v is None:
+                    continue
+                if not _donnee_retenue(o):
+                    ecartes += 1
+                    continue
+                sorties.append((date.fromisoformat(o["date_obs_elab"]),
+                                v / DIVISEUR))
             an = borne + 1
             await asyncio.sleep(2.0)     # menagement du service public
-        return sorties
+
+        if ecartes:
+            _LOGGER.info(
+                "%s %s : %d valeurs retenues, %d ecartees (statut ou "
+                "qualification)", code, grandeur_elab, len(sorties), ecartes)
+        return sorties, ecartes
 
 
 # --- Utilitaires -------------------------------------------------------------
+
+def _donnee_retenue(observation: dict) -> bool:
+    """Vrai si la valeur est assez sure pour entrer dans une reference.
+
+    Un code absent ne fait pas rejeter : toutes les stations ne renseignent pas
+    ces champs, et les ecarter reviendrait a perdre des chroniques entieres.
+    """
+    statut = observation.get("code_statut")
+    if statut is not None and statut not in STATUTS_RETENUS:
+        return False
+    qualification = observation.get("code_qualification")
+    return qualification != QUALIFICATION_DOUTEUSE
 
 def _en_datetime(texte: str) -> datetime:
     from homeassistant.util import dt as dt_util
