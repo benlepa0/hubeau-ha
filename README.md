@@ -12,7 +12,7 @@ leur propre station : régime, rang en percentiles, extrêmes connus. Les donné
 viennent de l'API publique [Hub'Eau][hubeau], **sans clé ni compte**, et une
 carte Lovelace est livrée avec l'intégration.
 
-![La carte, de l'étiage à la crue majeure, et une station en panne][capture-sombre]
+![La carte, en étiage, en régime fort et en crue][capture]
 
 ## Sommaire
 
@@ -122,7 +122,7 @@ hauteur: sensor.le_lez_a_montferrier_sur_lez_lavalette_hauteur_d_eau
 Les autres capteurs de la station se déduisent du préfixe. Options, échelle en
 percentiles et thème clair : [docs/CARTE.md][doc-carte].
 
-![La carte en thème clair][capture-claire]
+![Les cinq états de la carte, en thème clair][capture-claire]
 
 ## Exemple d'automatisation
 
@@ -201,7 +201,7 @@ Le journal des versions est dans [CHANGELOG.md][changelog], sous licence
 [doc-verif]: https://github.com/benlepa0/hubeau-ha/blob/main/docs/VERIFICATIONS.md
 [my-hacs]: https://my.home-assistant.io/redirect/hacs_repository/?owner=benlepa0&repository=hubeau-ha&category=integration
 [my-config]: https://my.home-assistant.io/redirect/config_flow_start/?domain=hubeau
-[capture-sombre]: https://raw.githubusercontent.com/benlepa0/hubeau-ha/main/docs/captures/carte-sombre.png
+[capture]: https://raw.githubusercontent.com/benlepa0/hubeau-ha/main/docs/captures/carte.png
 [capture-claire]: https://raw.githubusercontent.com/benlepa0/hubeau-ha/main/docs/captures/carte-clair.png
 [badge-version]: https://img.shields.io/github/v/release/benlepa0/hubeau-ha?style=for-the-badge&color=41BDF5
 [badge-hacs]: https://img.shields.io/badge/HACS-dépôt%20personnalisé-41BDF5.svg?style=for-the-badge

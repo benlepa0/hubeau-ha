@@ -38,4 +38,11 @@ for chemin in sorted(Path(sys.argv[1]).glob("carte-*.png")):
             break
     image.crop((0, 0, image.width, bas)).save(chemin, optimize=True)
     print(f"{chemin.name} : {Image.open(chemin).size[0]}x{Image.open(chemin).size[1]}")
+
+# Les cinq etats tiennent sur 1900 pixels, que GitHub reduit de moitie : les
+# chiffres deviennent illisibles. L'image de tete ne garde donc que les trois
+# premieres cartes, a une echelle ou l'on peut encore lire la mesure.
+image = Image.open(Path(sys.argv[1]) / "carte-sombre.png")
+image.crop((0, 0, 1120, image.height)).save(Path(sys.argv[1]) / "carte.png", optimize=True)
+print(f"carte.png : 1120x{image.height}")
 PY

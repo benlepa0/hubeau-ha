@@ -15,7 +15,9 @@ trente et un jours appliqué par défaut aux fichiers statiques, les correctifs
 de la carte restaient invisibles pendant des semaines dans le navigateur, et
 plus encore dans l'application Companion.
 
-![Les cinq etats de la carte, theme clair](captures/carte-clair.png)
+![Les cinq états de la carte, thème sombre](captures/carte-sombre.png)
+
+![Les mêmes, en thème clair](captures/carte-clair.png)
 
 ## Le parti pris
 
