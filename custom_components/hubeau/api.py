@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from typing import Any
 
 import aiohttp
@@ -34,13 +34,22 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 AGENT = "home-assistant-hubeau"
-DELAI = ClientTimeout(total=60)
 
-# L'API renvoie un 503 quand on l'interroge trop vite. Les reprises sont donc
-# la regle et non l'exception, en particulier lors du chargement initial des
-# trente ans d'historique.
-ESSAIS = 4
-ATTENTE_INITIALE = 3.0
+# Deux regimes d'attente. Le cycle courant ne demande que quelques lignes, qui
+# arrivent d'ordinaire en un dixieme de seconde ; mais l'API laisse parfois une
+# requete pendre deux minutes avant de repondre 503 (mesure du 2026-09-22).
+# Mieux vaut alors abandonner vite et retenter au cycle suivant. Les references
+# de trente ans, elles, se chargent en arriere-plan et ont droit a la patience.
+DELAI_COURT = ClientTimeout(total=20)
+DELAI_LONG = ClientTimeout(total=120)
+
+# L'API renvoie aussi un 503 quand on l'interroge trop vite : on reprend,
+# avec une attente qui double a chaque essai.
+ESSAIS = 3
+ATTENTE_INITIALE = 2.0
+
+# Plafond de lignes par reponse, pour les deux points d'acces utilises.
+TAILLE_MAX = 20000
 
 
 class ErreurHubEau(Exception):
@@ -53,13 +62,15 @@ class ApiHubEau:
     def __init__(self, session: aiohttp.ClientSession) -> None:
         self._session = session
 
-    async def _obtenir(self, chemin: str, params: dict[str, Any]) -> dict:
-        url = f"{URL_BASE}/{chemin}"
+    async def _obtenir(self, url: str, params: dict[str, Any] | None = None,
+                       delai: ClientTimeout = DELAI_COURT) -> dict:
+        if not url.startswith("http"):
+            url = f"{URL_BASE}/{url}"
         derniere: Exception | None = None
         for essai in range(ESSAIS):
             try:
                 async with self._session.get(
-                    url, params=params, timeout=DELAI,
+                    url, params=params, timeout=delai,
                     headers={"User-Agent": AGENT},
                 ) as rep:
                     if rep.status == 503:
@@ -72,26 +83,28 @@ class ApiHubEau:
                 derniere = err
                 if essai < ESSAIS - 1:
                     await asyncio.sleep(ATTENTE_INITIALE * (2 ** essai))
-        raise ErreurHubEau(f"{chemin} : {derniere}") from derniere
+        raise ErreurHubEau(f"{url.removeprefix(URL_BASE)} : {derniere!r}") \
+            from derniere
 
     async def _pages(self, chemin: str, params: dict[str, Any],
-                     maxi: int = 50) -> list[dict]:
-        """Suit la pagination par curseur jusqu'a epuisement."""
-        lignes: list[dict] = []
-        rep = await self._obtenir(chemin, params)
-        lignes.extend(rep.get("data", []))
+                     delai: ClientTimeout = DELAI_COURT,
+                     maxi: int = 10) -> list[dict]:
+        """Suit la pagination par curseur jusqu'a epuisement.
+
+        Avec `TAILLE_MAX` lignes par page, une seule suffit dans tous les cas
+        d'usage : sept jours au pas de cinq minutes font 4 000 lignes, trente
+        ans de valeurs journalieres 11 000. La boucle n'est qu'une securite.
+        """
+        rep = await self._obtenir(chemin, params, delai)
+        lignes: list[dict] = list(rep.get("data", []))
         suivant = rep.get("next")
         pages = 1
         while suivant and pages < maxi:
-            async with self._session.get(
-                suivant, timeout=DELAI, headers={"User-Agent": AGENT}
-            ) as r:
-                r.raise_for_status()
-                rep = await r.json()
+            await asyncio.sleep(1.0)     # menagement du service public
+            rep = await self._obtenir(suivant, None, delai)
             lignes.extend(rep.get("data", []))
             suivant = rep.get("next")
             pages += 1
-            await asyncio.sleep(1.0)
         if suivant:
             raise ErreurHubEau("serie incomplete : limite de pagination atteinte")
         return lignes
@@ -138,35 +151,29 @@ class ApiHubEau:
 
     # -- Temps reel ---------------------------------------------------------
 
-    async def derniere_mesure(self, code: str, grandeur: str) -> dict | None:
-        """Mesure la plus recente, convertie en m3/s ou en metres."""
-        rep = await self._obtenir("observations_tr", {
-            "code_entite": code, "grandeur_hydro": grandeur,
-            "size": 1, "sort": "desc",
-            "fields": "date_obs,resultat_obs",
-        })
-        donnees = rep.get("data", [])
-        if not donnees or donnees[0].get("resultat_obs") is None:
-            return None
-        o = donnees[0]
-        return {
-            "valeur": o["resultat_obs"] / DIVISEUR,
-            "date": _en_datetime(o["date_obs"]),
-        }
+    async def observations(self, code: str, depuis: datetime,
+                           ) -> dict[str, list[tuple[datetime, float]]]:
+        """Mesures au pas fin depuis une date, hauteur et debit ensemble.
 
-    async def serie_recente(self, code: str, grandeur: str,
-                            heures: int = 24) -> list[tuple[datetime, float]]:
-        """Serie au pas fin sur les dernieres heures, du plus ancien au plus
-        recent. Sert a detecter une station figee et a mesurer une tendance."""
-        depuis = (datetime.utcnow() - timedelta(hours=heures)).strftime(
-            "%Y-%m-%dT%H:%M:%SZ")
+        Une seule requete pour les deux grandeurs : sans `grandeur_hydro`,
+        l'API les renvoie melees, chaque ligne portant la sienne. Le tri
+        descendant est celui que l'API sert le plus vite ; on remet l'ordre
+        chronologique ici. Hauteurs en metres, debits en m3/s.
+        """
         lignes = await self._pages("observations_tr", {
-            "code_entite": code, "grandeur_hydro": grandeur,
-            "date_debut_obs": depuis, "size": 2000, "sort": "asc",
-            "fields": "date_obs,resultat_obs",
-        }, maxi=6)
-        return [(_en_datetime(o["date_obs"]), o["resultat_obs"] / DIVISEUR)
-                for o in lignes if o.get("resultat_obs") is not None]
+            "code_entite": code,
+            "date_debut_obs": depuis.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "size": TAILLE_MAX, "sort": "desc",
+            "fields": "grandeur_hydro,date_obs,resultat_obs",
+        })
+        sorties: dict[str, list[tuple[datetime, float]]] = {}
+        for o in reversed(lignes):
+            v = o.get("resultat_obs")
+            if v is None:
+                continue
+            sorties.setdefault(o.get("grandeur_hydro"), []).append(
+                (_en_datetime(o["date_obs"]), v / DIVISEUR))
+        return sorties
 
     # -- Historique ---------------------------------------------------------
 
@@ -175,8 +182,10 @@ class ApiHubEau:
     ) -> tuple[list[tuple[date, float]], int]:
         """Valeurs journalieres entre deux dates, ecremees de ce qui est douteux.
 
-        Decoupee en tranches de cinq ans : l'API plafonne le nombre de lignes
-        par reponse, et la decoupe evite d'enchainer trop de pages.
+        Une seule requete pour toute la periode : trente ans de valeurs
+        journalieres tiennent sous le plafond de lignes d'une page. L'ancien
+        decoupage en tranches de cinq ans multipliait les appels, et donc les
+        occasions de tomber sur un 503, pour rien.
 
         Chaque valeur porte un statut et une qualification, que l'integration
         ignorait jusqu'a la version 0.4.0. Sur le Lez a Lavalette, cela faisait
@@ -184,30 +193,26 @@ class ApiHubEau:
         lui-meme de douteux, dont le maximum de la chronique : 239 m3/s, quand
         le plus fort debit qualifie bon vaut 94 m3/s.
         """
+        lignes = await self._pages("obs_elab", {
+            "code_entite": code, "grandeur_hydro_elab": grandeur_elab,
+            "date_debut_obs_elab": debut.isoformat(),
+            "date_fin_obs_elab": fin.isoformat(),
+            "size": TAILLE_MAX,
+            "fields": "date_obs_elab,resultat_obs_elab,"
+                      "code_statut,code_qualification",
+        }, delai=DELAI_LONG)
         sorties: list[tuple[date, float]] = []
         ecartes = 0
-        an = debut.year
-        while an <= fin.year:
-            borne = min(an + 4, fin.year)
-            rep = await self._obtenir("obs_elab", {
-                "code_entite": code, "grandeur_hydro_elab": grandeur_elab,
-                "date_debut_obs_elab": f"{an}-01-01",
-                "date_fin_obs_elab": f"{borne}-12-31",
-                "size": 5000, "sort": "asc",
-                "fields": "date_obs_elab,resultat_obs_elab,"
-                          "code_statut,code_qualification",
-            })
-            for o in rep.get("data", []):
-                v = o.get("resultat_obs_elab")
-                if v is None:
-                    continue
-                if not _donnee_retenue(o):
-                    ecartes += 1
-                    continue
-                sorties.append((date.fromisoformat(o["date_obs_elab"]),
-                                v / DIVISEUR))
-            an = borne + 1
-            await asyncio.sleep(2.0)     # menagement du service public
+        for o in lignes:
+            v = o.get("resultat_obs_elab")
+            if v is None:
+                continue
+            if not _donnee_retenue(o):
+                ecartes += 1
+                continue
+            sorties.append((date.fromisoformat(o["date_obs_elab"]),
+                            v / DIVISEUR))
+        sorties.sort()
 
         if ecartes:
             _LOGGER.info(

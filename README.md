@@ -82,10 +82,14 @@ Ou **Paramètres → Appareils et services → Ajouter une intégration →
 Hub'Eau**. Tout se fait par l'interface ; rien à écrire dans
 `configuration.yaml`.
 
-Le premier démarrage télécharge trente ans d'historique et peut prendre une
-trentaine de secondes. C'est voulu : ces références sont ce qui rend les
-mesures lisibles. Elles sont ensuite mises en cache et recalculées tous les
-trente jours.
+Rien n'attend le réseau au démarrage de Home Assistant : les entités
+reprennent leurs dernières valeurs depuis le disque, et Hub'Eau est interrogé
+ensuite, en arrière-plan. À l'ajout d'une station, les mesures arrivent en
+quelques secondes ; les trente ans d'historique qui servent de références
+suivent, une requête par grandeur, et sont recalculés tous les trente jours.
+
+Toutes les cinq minutes, une seule requête ramène hauteur et débit, limitée à
+ce qui est paru depuis la dernière mesure connue.
 
 ## 📊 Entités
 
@@ -101,7 +105,7 @@ Une station suivie donne dix entités :
 | Dernière mesure | horodatage de la dernière valeur publiée |
 | Âge de la mesure | minutes écoulées depuis |
 | Crue *(binaire)* | au-delà du percentile 99, soit 3,7 jours par an mesurés sur le Lez |
-| Données obsolètes *(binaire)* | plus de 2 h sans mesure |
+| Données obsolètes *(binaire)* | plus de 2 h sans mesure ; les autres entités gardent leur dernière valeur |
 | Capteur figé *(binaire)* | station immobile ou incohérente |
 
 La référence porte sur les **maximums journaliers** pour la hauteur et sur les

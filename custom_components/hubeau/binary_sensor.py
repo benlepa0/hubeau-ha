@@ -21,7 +21,6 @@ from .entity import EntiteHubEau
 @dataclass(frozen=True, kw_only=True)
 class DescriptionBinaire(BinarySensorEntityDescription):
     valeur: Callable[[EtatStation], bool | None]
-    toujours_disponible: bool = False
 
 
 BINAIRES: tuple[DescriptionBinaire, ...] = (
@@ -42,7 +41,6 @@ BINAIRES: tuple[DescriptionBinaire, ...] = (
         device_class=BinarySensorDeviceClass.PROBLEM,
         icon="mdi:cloud-off-outline",
         valeur=lambda e: e.obsolete,
-        toujours_disponible=True,
     ),
     DescriptionBinaire(
         key="capteur_fige",
@@ -52,7 +50,6 @@ BINAIRES: tuple[DescriptionBinaire, ...] = (
         # Une station peut repondre tout en ayant cesse de mesurer, ou
         # annoncer un debit pour une hauteur nulle.
         valeur=lambda e: e.suspecte,
-        toujours_disponible=True,
     ),
 )
 
@@ -74,9 +71,3 @@ class BinaireHubEau(EntiteHubEau, BinarySensorEntity):
     @property
     def is_on(self) -> bool | None:
         return self.entity_description.valeur(self.coordinator.etat)
-
-    @property
-    def available(self) -> bool:
-        if self.entity_description.toujours_disponible:
-            return self.coordinator.last_update_success
-        return super().available

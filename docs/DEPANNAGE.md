@@ -6,10 +6,13 @@ comment tout défaire. L'installation est décrite dans le
 
 ## Après l'ajout d'une station
 
-Dix entités apparaissent : sept capteurs et trois binaires. Le premier
-rafraîchissement télécharge la chronique et prend une trentaine de secondes ;
-les entités restent indisponibles pendant ce temps, puis le régime, le rang et
-les extrêmes s'affichent d'un coup.
+Dix entités apparaissent : sept capteurs et trois binaires. Les mesures
+arrivent en quelques secondes ; le régime, le rang et les extrêmes suivent
+quand la chronique est chargée, en tâche de fond.
+
+Une station qui cesse de publier garde sa dernière valeur, horodatée, et le
+binaire *Données obsolètes* passe à `on` au bout de deux heures. Les entités ne
+deviennent indisponibles que si l'API elle-même ne répond plus.
 
 Trois signes que la lecture est correcte :
 
@@ -32,7 +35,9 @@ a servi de station de mise au point :
 | débit | 0,247 m³/s, rang 20,6 % |
 | références de hauteur | 10 629 jours (29,1 ans), médiane 0,455 m, maximum 4,403 m le 2014-10-06 |
 | références de débit | 10 502 jours (28,8 ans), médiane 0,846 m³/s, maximum 298,867 m³/s le 2001-10-09 |
-| premier démarrage | 36 s, historique compris |
+| chronique de débit, 30 ans | 4,5 s, une requête (0.5.0) |
+| cycle courant | 0,09 s, une requête |
+| mise en place au démarrage | 0,01 s, sans réseau |
 
 Relevé après la version 0.4.0, donc sur des références écrémées des valeurs
 non validées, et pour le débit sur les pointes journalières.
@@ -47,8 +52,10 @@ faute de statut ou de qualification suffisants ».
 
 Les références sont conservées dans `.storage/hubeau.<code station>.statistiques`
 et recalculées tous les trente jours. Un cache antérieur à la version 0.4.0 ne
-porte pas la grandeur dont il vient : il est recalculé au premier démarrage qui
-suit la mise à jour. Elles ne dépendent ni de la durée
+porte pas la grandeur dont il vient : il est recalculé en arrière-plan après la
+mise à jour. Les mesures des sept derniers jours sont gardées dans
+`.storage/hubeau.<code station>.mesures`, écrit au plus toutes les demi-heures
+et à l'arrêt : c'est ce qui permet de repartir sans interroger l'API. Elles ne dépendent ni de la durée
 d'installation de Home Assistant, ni du `recorder` : à série identique, le
 calcul redonne le même résultat.
 

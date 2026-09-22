@@ -16,6 +16,15 @@ URL_BASE: Final = "https://hubeau.eaufrance.fr/api/v2/hydrometrie"
 # rien et sollicite un service public pour rien.
 INTERVALLE: Final = timedelta(minutes=5)
 
+# Profondeur du tampon des mesures au pas fin, tenu en memoire et sur disque :
+# il nourrit le resume sur sept jours, la tendance et la detection d'un capteur
+# fige, sans reinterroger l'API a chaque cycle.
+JOURS_TAMPON: Final = 7
+
+# Chaque cycle redemande la derniere heure deja connue : certaines stations
+# sont publiees par lots, et un lot peut completer une heure deja servie.
+RECOUVREMENT: Final = timedelta(hours=1)
+
 # Les statistiques de reference ne bougent pratiquement pas d'un mois sur
 # l'autre : elles portent sur trente ans. On les recalcule rarement.
 INTERVALLE_STATISTIQUES: Final = timedelta(days=30)
@@ -83,6 +92,8 @@ NIVEAUX: Final = (
 )
 
 # Au-dela de ce delai sans mesure nouvelle, la station est consideree muette.
+# Ses entites gardent leur derniere valeur, horodatee ; c'est le capteur
+# binaire « donnees obsoletes » qui signale le silence.
 MINUTES_AVANT_OBSOLESCENCE: Final = 120
 
 # Une station peut rester en ligne tout en etant figee : c'est le cas du

@@ -171,11 +171,3 @@ class CapteurHubEau(EntiteHubEau, SensorEntity):
         if self.entity_description.attributs is None:
             return None
         return self.entity_description.attributs(self.coordinator.etat)
-
-    @property
-    def available(self) -> bool:
-        # La fraicheur et l'horodatage doivent rester lisibles meme quand la
-        # station se tait : ce sont eux qui disent qu'elle se tait.
-        if self.entity_description.key in ("fraicheur", "derniere_mesure"):
-            return self.coordinator.last_update_success
-        return super().available

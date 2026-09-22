@@ -30,6 +30,3 @@ class EntiteHubEau(CoordinatorEntity[CoordinateurHubEau]):
             ),
         )
 
-    @property
-    def available(self) -> bool:
-        return super().available and not self.coordinator.etat.obsolete

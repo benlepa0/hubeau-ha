@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
@@ -27,12 +28,19 @@ from .const import (
     HEURES_DETECTION_FIGE,
     INTERVALLE,
     INTERVALLE_STATISTIQUES,
+    JOURS_TAMPON,
     MINUTES_AVANT_OBSOLESCENCE,
+    RECOUVREMENT,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 VERSION_STOCKAGE = 1
+
+# Le tampon des mesures recentes n'est ecrit sur disque qu'au plus toutes les
+# demi-heures, et a l'arret de Home Assistant : il ne sert qu'a repartir de la
+# ou l'on en etait, pas a archiver.
+DELAI_ECRITURE_TAMPON = 1800
 
 
 @dataclass
@@ -120,7 +128,21 @@ class EtatStation:
 
 
 class CoordinateurHubEau(DataUpdateCoordinator[EtatStation]):
-    """Interroge une station et tient a jour ses statistiques de reference."""
+    """Interroge une station et tient a jour ses statistiques de reference.
+
+    Strategie, depuis la version 0.5.0 :
+
+    - **rien n'attend le reseau au demarrage.** Les references de trente ans
+      et les mesures des sept derniers jours sont relues sur le disque ; les
+      entites ont une valeur des leur creation. Hub'Eau est ensuite interroge
+      en arriere-plan. Avant, la mise en place enchainait quatre a six appels,
+      et un seul pouvait pendre deux minutes : Home Assistant attendait.
+    - **une seule requete par cycle**, hauteur et debit ensemble, limitee a ce
+      qui est arrive depuis la derniere mesure connue. Tendance, detection
+      d'un capteur fige et resume sur sept jours se calculent sur le tampon.
+    - **les references se recalculent en tache de fond**, a l'installation
+      puis tous les trente jours, sans jamais retenir les mesures du moment.
+    """
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, code: str,
                  libelle: str, cours_eau: str) -> None:
@@ -133,49 +155,96 @@ class CoordinateurHubEau(DataUpdateCoordinator[EtatStation]):
         self.etat = EtatStation(code=code, libelle=libelle, cours_eau=cours_eau)
         self._store: Store = Store(hass, VERSION_STOCKAGE,
                                    f"{DOMAINE}.{code}.statistiques")
-        self._stats_chargees = False
+        self._store_mesures: Store = Store(hass, VERSION_STOCKAGE,
+                                           f"{DOMAINE}.{code}.mesures")
         self._stats_le: datetime | None = None
-        self._sept_le: datetime | None = None
+        self._calcul_en_cours = False
+        self._prochain_essai: datetime | None = None
+        # Mesures au pas fin, par grandeur : date -> valeur.
+        self._mesures: dict[str, dict[datetime, float]] = {
+            GRANDEUR_HAUTEUR: {}, GRANDEUR_DEBIT: {}}
 
-    # -- statistiques de reference -----------------------------------------
+    # -- demarrage ----------------------------------------------------------
 
-    async def _charger_statistiques(self) -> None:
-        """Lit les statistiques en cache, ou les recalcule si elles manquent.
+    async def async_charger(self) -> None:
+        """Relit sur le disque ce que les executions precedentes ont appris.
 
-        Le calcul demande une dizaine d'appels a l'API pour trente ans de
-        valeurs journalieres : il ne se fait qu'a l'installation puis une fois
-        par mois, jamais dans le cycle de rafraichissement courant.
+        Ne touche pas au reseau. Si les references manquent ou ont plus de
+        trente jours, leur calcul est lance en arriere-plan.
         """
-        if self._stats_chargees and self._stats_le and (
-                dt_util.utcnow() - self._stats_le < INTERVALLE_STATISTIQUES):
-            return
-
-        cache = await self._store.async_load()
+        cache, tampon = await asyncio.gather(
+            self._store.async_load(), self._store_mesures.async_load())
+        complet = False
         if cache:
-            calcule_le = dt_util.parse_datetime(cache.get("calcule_le", "")) \
-                if cache.get("calcule_le") else None
-            frais = calcule_le and (dt_util.utcnow() - calcule_le
-                                    < INTERVALLE_STATISTIQUES)
             complet = True
             for nom, grandeur in (("hauteur", self.etat.hauteur),
                                   ("debit", self.etat.debit)):
                 brut = cache.get(nom)
                 if brut:
                     grandeur.stats = stats_mod.Statistiques.depuis_dict(brut)
+                    # Un cache anterieur a la 0.4.0 ne dit pas de quelle
+                    # grandeur il vient : on le garde en attendant mieux.
                     if (grandeur.stats.moyenne is None
                             or grandeur.stats.source is None):
                         complet = False
-            self._stats_chargees = True
-            self._stats_le = calcule_le
-            if frais and complet:
-                return
+            if cache.get("calcule_le"):
+                self._stats_le = dt_util.parse_datetime(cache["calcule_le"])
+        if not complet:
+            self._stats_le = None
 
-        await self._recalculer_statistiques()
+        if tampon:
+            for g, points in tampon.items():
+                if g in self._mesures:
+                    self._mesures[g] = {
+                        dt_util.utc_from_timestamp(t): v for t, v in points}
+            self._deduire(dt_util.utcnow())
+        self._verifier_statistiques()
+
+    async def async_enregistrer(self) -> None:
+        """Ecrit le tampon tout de suite : appele au dechargement."""
+        await self._store_mesures.async_save(self._tampon_serialise())
+
+    def _tampon_serialise(self) -> dict:
+        return {g: [[int(d.timestamp()), v] for d, v in sorted(m.items())]
+                for g, m in self._mesures.items()}
+
+    # -- statistiques de reference -----------------------------------------
+
+    def _verifier_statistiques(self) -> None:
+        """Lance le recalcul en arriere-plan si les references sont perimees."""
+        maintenant = dt_util.utcnow()
+        if self._calcul_en_cours or (self._prochain_essai
+                                     and maintenant < self._prochain_essai):
+            return
+        if self._stats_le and (dt_util.utcnow() - self._stats_le
+                               < INTERVALLE_STATISTIQUES):
+            return
+        self._calcul_en_cours = True
+        self.config_entry.async_create_background_task(
+            self.hass, self._recalculer_statistiques(),
+            f"{DOMAINE} {self.code} references")
 
     async def _recalculer_statistiques(self) -> None:
+        """Trente ans de valeurs journalieres, une requete par grandeur.
+
+        En cas d'echec, les references precedentes restent en place et le
+        calcul est retente une heure plus tard : inutile de redemander trente
+        ans de donnees toutes les cinq minutes a une API qui peine.
+        """
+        try:
+            await self._calculer()
+        except Exception as err:
+            self._prochain_essai = dt_util.utcnow() + timedelta(hours=1)
+            _LOGGER.warning("%s : references non recalculees (%s), nouvel "
+                            "essai dans une heure", self.code, err)
+        finally:
+            self._calcul_en_cours = False
+
+    async def _calculer(self) -> None:
         fin = dt_util.now().date()
         debut = date(fin.year - ANNEES_REFERENCE, 1, 1)
         paquet: dict[str, Any] = {"calcule_le": dt_util.utcnow().isoformat()}
+        echec = False
         for nom, grandeurs, cible in (
             ("hauteur", (ELAB_HAUTEUR_MAX,), self.etat.hauteur),
             # La pointe d'abord : c'est une mesure instantanee qu'on vient
@@ -191,7 +260,8 @@ class CoordinateurHubEau(DataUpdateCoordinator[EtatStation]):
                 except ErreurHubEau as err:
                     _LOGGER.warning("statistiques %s indisponibles pour %s : %s",
                                     nom, self.code, err)
-                    continue
+                    echec = True
+                    break
                 s = stats_mod.calculer(serie, source=grandeur_elab)
                 if s is not None:
                     break
@@ -209,6 +279,7 @@ class CoordinateurHubEau(DataUpdateCoordinator[EtatStation]):
                     _LOGGER.info(
                         "%s : %s trop court, repli sur la grandeur suivante",
                         self.code, grandeur_elab)
+                await asyncio.sleep(2.0)     # menagement du service public
             if s is not None:
                 cible.stats = s
                 paquet[nom] = s.vers_dict()
@@ -219,49 +290,69 @@ class CoordinateurHubEau(DataUpdateCoordinator[EtatStation]):
                     self.code, nom, s.jours, s.annees, s.source,
                     s.percentiles["50"], s.maximum, s.maximum_date,
                     s.percentile_fiable_max)
+            elif cible.stats is not None and echec:
+                # Une panne reseau ne doit pas effacer une reference acquise.
+                paquet[nom] = cible.stats.vers_dict()
+        if echec:
+            # On garde l'ancienne date de calcul : un essai suivant retentera.
+            raise ErreurHubEau("chronique journaliere incomplete")
         await self._store.async_save(paquet)
-        self._stats_chargees = True
         self._stats_le = dt_util.utcnow()
-
-    async def _charger_sept_jours(self) -> None:
-        """Mesures recentes de la source, sans lecture ni ecriture du recorder."""
-        maintenant = dt_util.utcnow()
-        if self._sept_le and maintenant - self._sept_le < timedelta(minutes=15):
-            return
-        self._sept_le = maintenant
-        try:
-            serie = await self.api.serie_recente(
-                self.code, GRANDEUR_HAUTEUR, heures=7 * 24)
-            self.etat.sept_jours = stats_mod.resume_sept_jours(serie, maintenant)
-        except Exception:
-            # Le bandeau ne doit ni afficher un ancien resume comme actuel,
-            # ni rendre indisponibles les mesures en direct de la station.
-            self.etat.sept_jours = {}
-            _LOGGER.warning("%s : resume sur sept jours indisponible", self.code,
-                            exc_info=True)
+        self.async_update_listeners()
 
     # -- cycle courant ------------------------------------------------------
 
     async def _async_update_data(self) -> EtatStation:
-        try:
-            await self._charger_statistiques()
-            for grandeur_code, cible in ((GRANDEUR_HAUTEUR, self.etat.hauteur),
-                                         (GRANDEUR_DEBIT, self.etat.debit)):
-                mesure = await self.api.derniere_mesure(self.code, grandeur_code)
-                if mesure is None:
-                    cible.valeur = None
-                    continue
-                cible.valeur = round(mesure["valeur"], 3)
-                cible.date = mesure["date"]
+        maintenant = dt_util.utcnow()
+        self._verifier_statistiques()
 
-                serie = await self.api.serie_recente(
-                    self.code, grandeur_code, heures=HEURES_DETECTION_FIGE)
-                cible.tendance_par_heure = stats_mod.tendance(serie)
-                cible.figee = stats_mod.est_figee(serie)
-                if cible.figee:
-                    _LOGGER.debug("%s : %s figee depuis au moins %d h",
-                                  self.code, grandeur_code, HEURES_DETECTION_FIGE)
+        # On ne redemande que ce qui manque, avec un recouvrement : Hub'Eau
+        # publie certaines stations par lots et peut completer une heure deja
+        # servie.
+        plancher = maintenant - timedelta(days=JOURS_TAMPON)
+        connues = [max(m) for m in self._mesures.values() if m]
+        depuis = max(plancher, max(connues) - RECOUVREMENT) if connues \
+            else plancher
+        try:
+            nouvelles = await self.api.observations(self.code, depuis)
         except ErreurHubEau as err:
+            # Une requete perdue n'efface pas des mesures encore fraiches :
+            # l'API a des absences de quelques minutes, sans consequence.
+            if not self.etat.obsolete:
+                _LOGGER.info("%s : cycle manque, mesures conservees : %s",
+                             self.code, err)
+                self._deduire(maintenant)
+                return self.etat
             raise UpdateFailed(str(err)) from err
-        await self._charger_sept_jours()
+
+        for g, points in nouvelles.items():
+            if g in self._mesures:
+                self._mesures[g].update(points)
+        for m in self._mesures.values():
+            for d in [d for d in m if d < plancher]:
+                del m[d]
+        self._deduire(maintenant)
+        self._store_mesures.async_delay_save(self._tampon_serialise,
+                                             DELAI_ECRITURE_TAMPON)
         return self.etat
+
+    def _deduire(self, maintenant: datetime) -> None:
+        """Recalcule l'etat expose a partir du tampon des mesures."""
+        fenetre = maintenant - timedelta(hours=HEURES_DETECTION_FIGE)
+        for g, cible in ((GRANDEUR_HAUTEUR, self.etat.hauteur),
+                         (GRANDEUR_DEBIT, self.etat.debit)):
+            serie = sorted(self._mesures[g].items())
+            if not serie:
+                cible.valeur = cible.date = cible.tendance_par_heure = None
+                cible.figee = False
+                continue
+            cible.date, v = serie[-1]
+            cible.valeur = round(v, 3)
+            recente = [p for p in serie if p[0] >= fenetre]
+            cible.tendance_par_heure = stats_mod.tendance(recente)
+            cible.figee = stats_mod.est_figee(recente)
+            if cible.figee:
+                _LOGGER.debug("%s : %s figee depuis au moins %d h",
+                              self.code, g, HEURES_DETECTION_FIGE)
+        self.etat.sept_jours = stats_mod.resume_sept_jours(
+            sorted(self._mesures[GRANDEUR_HAUTEUR].items()), maintenant)

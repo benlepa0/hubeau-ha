@@ -34,5 +34,5 @@ b=$(docker exec "$CONTENEUR" md5sum \
 
 echo
 echo "Reste a faire : redemarrer Home Assistant."
-echo "La carte sera servie sur /hubeau/hubeau-card.js?v=$VERSION ;"
+echo "La carte sera servie sur /hubeau/hubeau-card.js?v=<empreinte du fichier> ;"
 echo "la console du navigateur doit afficher HUBEAU-CARD au chargement."

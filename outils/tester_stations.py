@@ -24,11 +24,10 @@ async def main():
             code=station['code_station']; now=dt_util.utcnow()
             r={'code':code,'station':station['libelle_station']}
             try:
-                h=await api.serie_recente(code,'H',heures=168)
-                await asyncio.sleep(1)
-                q=await api.derniere_mesure(code,'Q')
-                await asyncio.sleep(1)
-                q12=await api.serie_recente(code,'Q',heures=12) if q else []
+                obs=await api.observations(code,now-timedelta(days=7))
+                h=obs.get('H',[]); qs=obs.get('Q',[])
+                q={'valeur':qs[-1][1],'date':qs[-1][0]} if qs else None
+                q12=[(d,v) for d,v in qs if d>=now-timedelta(hours=12)]
                 resume=stats.resume_sept_jours(h,now)
                 points={d:v for d,v in h if now-timedelta(days=7)<=d<=now}
                 assert all(math.isfinite(v) for v in points.values())
