@@ -388,9 +388,11 @@ class CarteHubEau extends HTMLElement {
     r.querySelector("#c-debit").textContent =
       Number.isFinite(debit) ? `${nombre(debit, 3)} m³/s` : "—";
 
+    // La pente porte sur la derniere heure : en eaux calmes, le bruit du
+    // capteur y atteint quelques dixiemes de cm/h, sans que la riviere bouge.
     const t = Number(this._hass.states[this._cfg.tendance]?.state);
     r.querySelector("#c-tend").textContent = Number.isFinite(t)
-      ? `${t > 0.05 ? "↑" : t < -0.05 ? "↓" : "→"} ${nombre(Math.abs(t), 1)} cm/h`
+      ? `${t > 0.5 ? "↑" : t < -0.5 ? "↓" : "→"} ${nombre(Math.abs(t), 1)} cm/h`
       : "—";
 
     // L'heure de la mesure, et non son age seul : Hub'Eau publie certaines

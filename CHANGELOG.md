@@ -3,6 +3,17 @@
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le
 versionnement est [sémantique](https://semver.org/lang/fr/).
 
+## [0.5.1] - 2026-09-30
+
+### Corrigé
+
+- **Tendance sur la dernière heure mesurée**, et non plus sur douze heures.
+  Pendant la crue du 2026-09-30, le Lez à Lavalette montait de 125 cm/h ;
+  la tendance affichait 6 cm/h. Station publiée à l'heure : ses quatre
+  dernières mesures, dans la limite de six heures.
+- Carte : flèche stable en dessous de 0,5 cm/h, au-dessus du bruit d'un
+  capteur en eaux calmes.
+
 ## [0.5.0] - 2026-09-22
 
 Home Assistant n'attend plus Hub'Eau (57 s sur 60 au démarrage du 2026-09-22).

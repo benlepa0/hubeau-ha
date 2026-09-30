@@ -101,6 +101,17 @@ MINUTES_AVANT_OBSOLESCENCE: Final = 120
 # depuis des semaines. On detecte l'immobilite plutot que l'absence.
 HEURES_DETECTION_FIGE: Final = 12
 
+# La tendance porte sur la derniere heure mesuree, et non sur les douze heures
+# de la detection d'immobilite : le 2026-09-30, le Lez a Lavalette montait de
+# 125 cm/h sur l'heure, la regression sur douze heures en affichait 6. En eaux
+# calmes, une heure reste lisible : 1,4 cm/h de bruit au plus sur sept jours
+# de trois stations. Une station publiee a l'heure n'a pas quatre points en
+# une heure ; la fenetre s'etend alors jusqu'a ses quatre dernieres mesures,
+# dans la limite de six heures.
+MINUTES_TENDANCE: Final = 60
+POINTS_TENDANCE: Final = 4
+HEURES_TENDANCE_MAX: Final = 6
+
 # La carte Lovelace voyage avec l'integration, dans le meme paquet : c'est
 # l'integration qui la sert et qui la charge dans le frontend. L'utilisateur
 # n'a donc ni second depot a installer, ni ressource a declarer a la main dans

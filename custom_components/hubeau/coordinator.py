@@ -349,7 +349,8 @@ class CoordinateurHubEau(DataUpdateCoordinator[EtatStation]):
             cible.date, v = serie[-1]
             cible.valeur = round(v, 3)
             recente = [p for p in serie if p[0] >= fenetre]
-            cible.tendance_par_heure = stats_mod.tendance(recente)
+            cible.tendance_par_heure = stats_mod.tendance(
+                stats_mod.fenetre_tendance(serie))
             cible.figee = stats_mod.est_figee(recente)
             if cible.figee:
                 _LOGGER.debug("%s : %s figee depuis au moins %d h",

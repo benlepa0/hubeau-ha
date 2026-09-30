@@ -96,7 +96,7 @@ Une station suivie donne dix entités :
 | Débit | m³/s, idem |
 | Régime | d'*étiage sévère* à *crue majeure*, en percentiles de la station |
 | Rang sur la chronique | 0 à 100 % |
-| Tendance | cm/h, par régression sur 12 h |
+| Tendance | cm/h, par régression sur la dernière heure mesurée |
 | Dernière mesure | horodatage de la dernière valeur publiée |
 | Âge de la mesure | minutes écoulées depuis |
 | Crue *(binaire)* | au-delà du percentile 99, soit 3,7 jours par an mesurés sur le Lez |

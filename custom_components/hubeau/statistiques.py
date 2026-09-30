@@ -18,7 +18,13 @@ import logging
 from dataclasses import dataclass, asdict
 from datetime import date, timedelta
 
-from .const import JOURS_DE_SOUTIEN, NIVEAUX
+from .const import (
+    HEURES_TENDANCE_MAX,
+    JOURS_DE_SOUTIEN,
+    MINUTES_TENDANCE,
+    NIVEAUX,
+    POINTS_TENDANCE,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -187,7 +193,7 @@ def tendance(serie: list[tuple]) -> float | None:
     premiere et la derniere : une mesure isolee aberrante -- il y en a -- ne
     doit pas dicter la tendance affichee.
     """
-    if len(serie) < 4:
+    if len(serie) < POINTS_TENDANCE:
         return None
     t0 = serie[0][0]
     xs = [(t - t0).total_seconds() / 3600.0 for t, _ in serie]
@@ -199,6 +205,28 @@ def tendance(serie: list[tuple]) -> float | None:
     if denom <= 0:
         return None
     return sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / denom
+
+
+def fenetre_tendance(serie: list[tuple]) -> list[tuple]:
+    """Les mesures sur lesquelles calculer la tendance, serie triee.
+
+    La derniere heure, comptee depuis la derniere mesure et non depuis
+    l'instant present : une station en retard garde la pente de ce qu'elle a
+    publie, et c'est le capteur « donnees obsoletes » qui signale le retard.
+    A defaut de quatre points dans l'heure, les quatre derniers, s'ils tiennent
+    en six heures.
+    """
+    if not serie:
+        return []
+    fin = serie[-1][0]
+    recente = [p for p in serie
+               if p[0] >= fin - timedelta(minutes=MINUTES_TENDANCE)]
+    if len(recente) >= POINTS_TENDANCE:
+        return recente
+    dernieres = serie[-POINTS_TENDANCE:]
+    if fin - dernieres[0][0] <= timedelta(hours=HEURES_TENDANCE_MAX):
+        return dernieres
+    return recente
 
 
 def est_figee(serie: list[tuple], minimum_points: int = 24,
