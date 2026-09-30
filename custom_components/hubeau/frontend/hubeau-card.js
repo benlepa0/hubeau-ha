@@ -385,8 +385,12 @@ class CarteHubEau extends HTMLElement {
 
   _pied(debit) {
     const r = this._racine;
+    // Un decimal, arrondi au dixieme superieur : un filet d'eau d'etiage
+    // (0,074 m3/s sur le Lez) ne doit pas s'afficher « 0,0 ». Le calcul passe
+    // par les litres par seconde entiers pour ne pas porter 0,3 a 0,4.
+    const dixiemes = Math.ceil(Math.round(debit * 1000) / 100) / 10;
     r.querySelector("#c-debit").textContent =
-      Number.isFinite(debit) ? `${nombre(debit, 3)} m³/s` : "—";
+      Number.isFinite(debit) ? `${nombre(dixiemes, 1)} m³/s` : "—";
 
     // La pente porte sur la derniere heure : en eaux calmes, le bruit du
     // capteur y atteint quelques dixiemes de cm/h, sans que la riviere bouge.

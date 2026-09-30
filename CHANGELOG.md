@@ -3,6 +3,13 @@
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le
 versionnement est [sémantique](https://semver.org/lang/fr/).
 
+## [0.5.2] - 2026-09-30
+
+### Modifié
+
+- Carte : débit à un décimal, arrondi au dixième supérieur, au lieu de trois.
+  Un débit d'étiage (0,074 m³/s) s'affiche 0,1 et non 0,0.
+
 ## [0.5.1] - 2026-09-30
 
 ### Corrigé
