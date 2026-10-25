@@ -3,8 +3,21 @@
     "step": {
       "user": {
         "title": "Chercher une station",
+        "description": "Autour de votre domicile, ou par le nom d'une rivière ou d'une commune.",
+        "menu_options": {
+          "autour": "Autour de mon domicile",
+          "recherche": "Par rivière ou commune"
+        }
+      },
+      "autour": {
+        "title": "Chercher une station",
         "description": "Stations hydrométriques autour de votre domicile ({latitude}, {longitude}).",
         "data": { "rayon_km": "Rayon de recherche" }
+      },
+      "recherche": {
+        "title": "Chercher par nom",
+        "description": "Nom d'une rivière ou d'une commune, accents facultatifs : « Hérault », « Lattes », « Mosson Juvignac ». Résultats triés par distance à votre domicile.",
+        "data": { "recherche": "Rivière ou commune" }
       },
       "station": {
         "title": "Choisir la station",
@@ -14,11 +27,13 @@
     },
     "error": {
       "connexion": "Hub'Eau est injoignable pour le moment.",
-      "aucune_station": "Aucune station en service dans ce rayon. Essayez plus large."
+      "aucune_station": "Aucune station en service dans ce rayon. Essayez plus large.",
+      "recherche_courte": "Saisissez au moins trois caractères.",
+      "aucun_resultat": "Aucune station en service ne correspond. Essayez un autre nom, ou la recherche autour du domicile."
     },
     "abort": {
       "already_configured": "Cette station est déjà suivie.",
-      "toutes_configurees": "Toutes les stations de ce rayon sont déjà suivies."
+      "toutes_configurees": "Toutes les stations trouvées sont déjà suivies."
     }
   },
   "entity": {

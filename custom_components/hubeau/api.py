@@ -141,6 +141,44 @@ class ApiHubEau:
         sorties.sort(key=lambda s: s["distance_km"])
         return sorties
 
+    async def rechercher_stations(self, texte: str, longitude: float,
+                                  latitude: float) -> list[dict]:
+        """Stations en service dont le cours d'eau ou le libelle cite `texte`.
+
+        L'API n'a pas de filtre par nom de commune, mais le libelle d'une
+        station la nomme presque toujours (« Le Lez a Lattes »). Elle ignore
+        accents et casse, et coupe aux traits d'union en combinant les mots en
+        OU : « Saint-Martin » ramene 627 stations (mesure du 2026-10-25). On
+        ne lui envoie donc que le mot le plus long, puis on exige ici tous les
+        mots. Resultat trie par distance au domicile.
+        """
+        mots = [m for m in _mots(texte) if m not in MOTS_VIDES]
+        if not mots:
+            return []
+        appui = max(mots, key=len)
+        trouvees: dict[str, dict] = {}
+        for champ in ("libelle_cours_eau", "libelle_station"):
+            for s in await self._pages("referentiel/stations", {
+                champ: appui, "format": "json", "size": 1000,
+                "en_service": "true",
+            }):
+                trouvees.setdefault(s["code_station"], s)
+        sorties = []
+        for s in trouvees.values():
+            portee = set(_mots(" ".join(
+                s.get(c) or "" for c in
+                ("libelle_station", "libelle_cours_eau", "libelle_commune"))))
+            if not portee.issuperset(mots):
+                continue
+            lon, lat = s.get("longitude_station"), s.get("latitude_station")
+            s["distance_km"] = (None if lon is None or lat is None else
+                                round(_distance_km(longitude, latitude,
+                                                   lon, lat), 1))
+            sorties.append(s)
+        sorties.sort(key=lambda s: (s["distance_km"] is None,
+                                    s["distance_km"] or 0.0))
+        return sorties
+
     async def station(self, code: str) -> dict:
         rep = await self._obtenir("referentiel/stations",
                                   {"code_station": code, "format": "json"})
@@ -241,6 +279,21 @@ def _en_datetime(texte: str) -> datetime:
     if valeur is None:
         raise ErreurHubEau(f"horodatage illisible : {texte}")
     return dt_util.as_utc(valeur)
+
+
+# Articles et prepositions des libelles : « La Mosson a Juvignac ». Les exiger
+# ferait echouer « Mosson Juvignac », sans rien rendre plus precis.
+MOTS_VIDES = frozenset({"l", "le", "la", "les", "d", "de", "du", "des",
+                        "a", "au", "aux", "en", "sur", "sous"})
+
+
+def _mots(texte: str) -> list[str]:
+    """Mots d'un libelle, sans accents ni casse ni ponctuation."""
+    import re
+    import unicodedata
+    plat = unicodedata.normalize("NFKD", texte.casefold())
+    plat = "".join(c for c in plat if not unicodedata.combining(c))
+    return re.findall(r"[a-z0-9]+", plat)
 
 
 def _distance_km(lon1: float, lat1: float, lon2: float, lat2: float) -> float:

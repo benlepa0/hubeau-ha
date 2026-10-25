@@ -39,7 +39,7 @@ la moitié du temps, ce qui rend l'étiage aussi lisible qu'une crue.
 
 Sous la scène, un bandeau donne le **minimum, la moyenne et le maximum des
 sept derniers jours**. L'intégration récupère les mesures récentes de hauteur
-auprès de Hub'Eau toutes les quinze minutes, puis expose le résumé dans les
+auprès de Hub'Eau toutes les cinq minutes, puis expose le résumé dans les
 attributs du capteur. La moyenne est arithmétique sur les mesures disponibles ;
 les périodes sans mesures ne sont pas inventées. Le bandeau affiche des tirets
 si les données ne sont pas disponibles. Les trois valeurs ne sont pas cliquables.

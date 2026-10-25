@@ -50,8 +50,9 @@ Les seuils sont donc **relatifs à chaque station**, jamais absolus.
   hauteurs sont rapportées au zéro de l'échelle de la station, donc une valeur
   négative ne veut pas dire un lit à sec.
 - **Carte Lovelace incluse**, sans ressource à déclarer dans le tableau de bord.
-- **Configuration par l'interface** : un rayon autour du domicile, puis une
-  station dans la liste triée par distance. Autant de stations que voulu.
+- **Configuration par l'interface** : stations dans un rayon autour du
+  domicile, ou par nom de rivière ou de commune, triées par distance. Autant
+  de stations que voulu.
 - Aucune écriture dans le `recorder`, aucun import d'anciennes mesures.
 - Interface en français et en anglais.
 
@@ -81,6 +82,13 @@ configuration, puis redémarrer Home Assistant.
 Ou **Paramètres → Appareils et services → Ajouter une intégration →
 Hub'Eau**. Tout se fait par l'interface ; rien à écrire dans
 `configuration.yaml`.
+
+Deux recherches : **autour du domicile**, dans un rayon réglable, ou **par
+nom**, celui d'une rivière (« Hérault ») ou d'une commune (« Lattes »). L'API
+ne filtre pas par commune : la recherche par nom trouve les stations dont le
+libellé la cite, ce qui est presque toujours le cas, mais pas une station
+nommée d'après un lieu-dit (« Le Lez à Montferrier-sur-Lez [Lavalette] » ne
+sort pas pour « Montpellier »).
 
 Le démarrage n'attend pas le réseau : les dernières valeurs sont relues sur le
 disque, Hub'Eau est interrogé en arrière-plan. Références recalculées tous les

@@ -16,6 +16,7 @@ from homeassistant.helpers.selector import (
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
+    TextSelector,
 )
 
 from .api import ApiHubEau, ErreurHubEau
@@ -23,16 +24,18 @@ from .const import (
     CONF_COURS_EAU,
     CONF_LIBELLE,
     CONF_RAYON_KM,
+    CONF_RECHERCHE,
     CONF_STATION,
     DOMAINE,
     RAYON_DEFAUT_KM,
+    STATIONS_PROPOSEES,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class FluxConfiguration(ConfigFlow, domain=DOMAINE):
-    """Deux etapes : on cherche autour de chez soi, puis on choisit."""
+    """On cherche autour de chez soi ou par nom, puis on choisit."""
 
     VERSION = 1
 
@@ -40,6 +43,12 @@ class FluxConfiguration(ConfigFlow, domain=DOMAINE):
         self._stations: list[dict] = []
 
     async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        return self.async_show_menu(step_id="user",
+                                    menu_options=["autour", "recherche"])
+
+    async def async_step_autour(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         erreurs: dict[str, str] = {}
@@ -60,7 +69,7 @@ class FluxConfiguration(ConfigFlow, domain=DOMAINE):
                     return await self.async_step_station()
 
         return self.async_show_form(
-            step_id="user",
+            step_id="autour",
             data_schema=vol.Schema({
                 vol.Required(CONF_RAYON_KM, default=RAYON_DEFAUT_KM):
                     NumberSelector(NumberSelectorConfig(
@@ -73,6 +82,40 @@ class FluxConfiguration(ConfigFlow, domain=DOMAINE):
                 "latitude": f"{self.hass.config.latitude:.4f}",
                 "longitude": f"{self.hass.config.longitude:.4f}",
             },
+        )
+
+    async def async_step_recherche(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        erreurs: dict[str, str] = {}
+
+        if user_input is not None:
+            texte = user_input[CONF_RECHERCHE].strip()
+            # L'API pend ou echoue sur une lettre isolee (mesure du
+            # 2026-10-25) ; trois caracteres suffisent pour « Lez ».
+            if len(texte) < 3:
+                erreurs["base"] = "recherche_courte"
+            else:
+                api = ApiHubEau(async_get_clientsession(self.hass))
+                try:
+                    self._stations = await api.rechercher_stations(
+                        texte, self.hass.config.longitude,
+                        self.hass.config.latitude)
+                except ErreurHubEau as err:
+                    _LOGGER.error("recherche de stations impossible : %s", err)
+                    erreurs["base"] = "connexion"
+                else:
+                    if not self._stations:
+                        erreurs["base"] = "aucun_resultat"
+                    else:
+                        return await self.async_step_station()
+
+        return self.async_show_form(
+            step_id="recherche",
+            data_schema=vol.Schema({
+                vol.Required(CONF_RECHERCHE): TextSelector(),
+            }),
+            errors=erreurs,
         )
 
     async def async_step_station(
@@ -100,10 +143,11 @@ class FluxConfiguration(ConfigFlow, domain=DOMAINE):
                 value=s["code_station"],
                 # La distance figure dans le libelle : c'est le critere de
                 # choix quand plusieurs stations bordent le meme cours d'eau.
-                label=f"{s['libelle_station']} ({s['distance_km']} km)",
+                label=(s["libelle_station"] if s["distance_km"] is None
+                       else f"{s['libelle_station']} ({s['distance_km']} km)"),
             )
             for s in self._stations if s["code_station"] not in deja
-        ]
+        ][:STATIONS_PROPOSEES]
         if not options:
             return self.async_abort(reason="toutes_configurees")
 

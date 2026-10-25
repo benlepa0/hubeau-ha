@@ -3,8 +3,21 @@
     "step": {
       "user": {
         "title": "Find a gauging station",
+        "description": "Near your home, or by the name of a river or municipality.",
+        "menu_options": {
+          "autour": "Near my home",
+          "recherche": "By river or municipality"
+        }
+      },
+      "autour": {
+        "title": "Find a gauging station",
         "description": "Hydrometric stations near your home ({latitude}, {longitude}).",
         "data": { "rayon_km": "Search radius" }
+      },
+      "recherche": {
+        "title": "Search by name",
+        "description": "Name of a river or French municipality, accents optional: \"Hérault\", \"Lattes\", \"Mosson Juvignac\". Results sorted by distance from your home.",
+        "data": { "recherche": "River or municipality" }
       },
       "station": {
         "title": "Choose the station",
@@ -14,11 +27,13 @@
     },
     "error": {
       "connexion": "Hub'Eau is unreachable right now.",
-      "aucune_station": "No active station within this radius. Try a wider one."
+      "aucune_station": "No active station within this radius. Try a wider one.",
+      "recherche_courte": "Enter at least three characters.",
+      "aucun_resultat": "No active station matches. Try another name, or the search near your home."
     },
     "abort": {
       "already_configured": "This station is already tracked.",
-      "toutes_configurees": "Every station within this radius is already tracked."
+      "toutes_configurees": "Every station found is already tracked."
     }
   },
   "entity": {

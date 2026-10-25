@@ -3,6 +3,19 @@
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le
 versionnement est [sémantique](https://semver.org/lang/fr/).
 
+## [0.6.0] - 2026-10-25
+
+### Ajouté
+
+- **Recherche de station par nom de rivière ou de commune**, à côté de la
+  recherche par rayon autour du domicile ([#1][i1]). Accents et casse
+  indifférents, résultats triés par distance, cent au plus.
+
+### Corrigé
+
+- `docs/CARTE.md` annonçait une interrogation toutes les quinze minutes ;
+  elle a toujours eu lieu toutes les cinq.
+
 ## [0.5.2] - 2026-09-30
 
 ### Modifié
@@ -167,3 +180,4 @@ dépôt était encore privé.
 [0.3.2]: https://github.com/benlepa0/hubeau-ha/releases/tag/v0.3.2
 [0.3.1]: https://github.com/benlepa0/hubeau-ha/releases/tag/v0.3.1
 [0.3.0]: https://github.com/benlepa0/hubeau-ha/releases/tag/v0.3.0
+[i1]: https://github.com/benlepa0/hubeau-ha/issues/1

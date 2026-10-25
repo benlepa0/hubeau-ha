@@ -36,8 +36,13 @@ CONF_STATION: Final = "station"
 CONF_LIBELLE: Final = "libelle"
 CONF_COURS_EAU: Final = "cours_eau"
 CONF_RAYON_KM: Final = "rayon_km"
+CONF_RECHERCHE: Final = "recherche"
 
 RAYON_DEFAUT_KM: Final = 30.0
+
+# Une recherche par nom peut couvrir la France entiere : « Seine » ramene 92
+# stations. La liste deroulante n'en propose que les plus proches.
+STATIONS_PROPOSEES: Final = 100
 
 # Grandeurs hydrometriques de Hub'Eau.
 GRANDEUR_DEBIT: Final = "Q"
