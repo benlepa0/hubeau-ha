@@ -60,14 +60,12 @@ Les seuils sont donc **relatifs à chaque station**, jamais absolus.
 
 ### Par HACS
 
-Le dépôt n'est pas encore dans le magasin par défaut. Il s'ajoute en dépôt
-personnalisé, catégorie *Intégration* :
+Hub'Eau fait partie du magasin par défaut de HACS :
 
 [![Ouvrir le dépôt dans HACS][badge-my-hacs]][my-hacs]
 
-1. Ouvrir le lien ci-dessus, ou HACS → menu ⋮ → *Dépôts personnalisés*, puis
-   coller `https://github.com/benlepa0/hubeau-ha` en catégorie *Intégration*.
-2. Télécharger « Hub'Eau » depuis la liste.
+1. Chercher « Hub'Eau » dans HACS, ou ouvrir le lien ci-dessus.
+2. Télécharger l'intégration.
 3. Redémarrer Home Assistant.
 
 ### À la main
@@ -225,7 +223,7 @@ Le journal des versions est dans [CHANGELOG.md][changelog], sous licence
 [capture]: https://raw.githubusercontent.com/benlepa0/hubeau-ha/main/docs/captures/carte.png
 [capture-claire]: https://raw.githubusercontent.com/benlepa0/hubeau-ha/main/docs/captures/carte-clair.png
 [badge-version]: https://img.shields.io/github/v/release/benlepa0/hubeau-ha?style=for-the-badge&color=41BDF5
-[badge-hacs]: https://img.shields.io/badge/HACS-dépôt%20personnalisé-41BDF5.svg?style=for-the-badge
+[badge-hacs]: https://img.shields.io/badge/HACS-par%20défaut-41BDF5.svg?style=for-the-badge
 [badge-ci]: https://img.shields.io/github/actions/workflow/status/benlepa0/hubeau-ha/validate.yml?branch=main&style=for-the-badge&label=validation
 [badge-licence]: https://img.shields.io/github/license/benlepa0/hubeau-ha?style=for-the-badge&color=41BDF5
 [badge-my-hacs]: https://my.home-assistant.io/badges/hacs_repository.svg
