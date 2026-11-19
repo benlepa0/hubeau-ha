@@ -64,6 +64,8 @@ class ApiHubEau:
 
     def __init__(self, session: aiohttp.ClientSession) -> None:
         self._session = session
+        # Vrai quand le dernier cycle a pris ses mesures a Vigicrues.
+        self.par_vigicrues = False
 
     async def _obtenir(self, url: str, params: dict[str, Any] | None = None,
                        delai: ClientTimeout = DELAI_COURT) -> dict:
@@ -209,7 +211,10 @@ class ApiHubEau:
                 "fields": "grandeur_hydro,date_obs,resultat_obs",
             })
         except ErreurHubEau as err:
-            return await self._observations_vigicrues(code, depuis, err)
+            sorties = await self._observations_vigicrues(code, depuis, err)
+            self.par_vigicrues = True
+            return sorties
+        self.par_vigicrues = False
         sorties: dict[str, list[tuple[datetime, float]]] = {}
         for o in reversed(lignes):
             v = o.get("resultat_obs")

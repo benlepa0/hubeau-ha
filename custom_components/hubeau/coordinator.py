@@ -351,7 +351,13 @@ class CoordinateurHubEau(DataUpdateCoordinator[EtatStation]):
             recente = [p for p in serie if p[0] >= fenetre]
             cible.tendance_par_heure = stats_mod.tendance(
                 stats_mod.fenetre_tendance(serie))
-            cible.figee = stats_mod.est_figee(recente)
+            # Vigicrues arrondit les hauteurs au centimetre, Hub'Eau les donne
+            # au millimetre : en decrue lente, douze heures de Vigicrues ne
+            # prennent que trois valeurs (Lez a Lavalette, 2026-11-19). Seule
+            # une valeur rigoureusement constante vaut alors immobilite.
+            cible.figee = stats_mod.est_figee(
+                recente,
+                valeurs_distinctes_max=0 if self.api.par_vigicrues else 3)
             if cible.figee:
                 _LOGGER.debug("%s : %s figee depuis au moins %d h",
                               self.code, g, HEURES_DETECTION_FIGE)

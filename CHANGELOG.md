@@ -3,6 +3,15 @@
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le
 versionnement est [sémantique](https://semver.org/lang/fr/).
 
+## [0.6.2] - 2026-11-19
+
+### Corrigé
+
+- *Capteur figé* s'allumait à tort pendant le repli sur Vigicrues, qui arrondit
+  les hauteurs au centimètre : en décrue lente, douze heures n'y prennent que
+  trois valeurs. Pendant le repli, seule une valeur strictement constante
+  compte comme immobile.
+
 ## [0.6.1] - 2026-11-19
 
 ### Ajouté
