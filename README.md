@@ -164,6 +164,10 @@ une.
 
 ## ⚠️ Limites connues
 
+- Si Hub'Eau ne répond pas, les mesures en direct sont prises à
+  [Vigicrues](https://www.vigicrues.gouv.fr/), qui publie les mêmes. Les
+  références ne se recalculent qu'avec Hub'Eau ; celles du cache restent.
+
 - Hub'Eau ne conserve le **pas de temps fin qu'un mois glissant**. Au-delà,
   seules les valeurs journalières existent, d'où des références fondées sur la
   hauteur *maximale* journalière et le débit *moyen* journalier.

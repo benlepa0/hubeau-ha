@@ -10,6 +10,9 @@ DOMAIN: Final = DOMAINE          # attendu par Home Assistant
 
 FABRICANT: Final = "Eaufrance"
 URL_BASE: Final = "https://hubeau.eaufrance.fr/api/v2/hydrometrie"
+# Source des memes mesures en temps reel, en repli quand Hub'Eau ne repond pas.
+URL_VIGICRUES: Final = ("https://www.vigicrues.gouv.fr/services/"
+                        "observations.json/index.php")
 
 # L'API publie les mesures avec dix a vingt minutes de retard et un pas de
 # cinq a dix minutes selon les stations. Interroger plus souvent ne rapporte

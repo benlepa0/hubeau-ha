@@ -26,9 +26,12 @@ from aiohttp import ClientResponseError, ClientTimeout
 
 from .const import (
     DIVISEUR,
+    GRANDEUR_DEBIT,
+    GRANDEUR_HAUTEUR,
     QUALIFICATION_DOUTEUSE,
     STATUTS_RETENUS,
     URL_BASE,
+    URL_VIGICRUES,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -198,12 +201,15 @@ class ApiHubEau:
         descendant est celui que l'API sert le plus vite ; on remet l'ordre
         chronologique ici. Hauteurs en metres, debits en m3/s.
         """
-        lignes = await self._pages("observations_tr", {
-            "code_entite": code,
-            "date_debut_obs": depuis.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "size": TAILLE_MAX, "sort": "desc",
-            "fields": "grandeur_hydro,date_obs,resultat_obs",
-        })
+        try:
+            lignes = await self._pages("observations_tr", {
+                "code_entite": code,
+                "date_debut_obs": depuis.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "size": TAILLE_MAX, "sort": "desc",
+                "fields": "grandeur_hydro,date_obs,resultat_obs",
+            })
+        except ErreurHubEau as err:
+            return await self._observations_vigicrues(code, depuis, err)
         sorties: dict[str, list[tuple[datetime, float]]] = {}
         for o in reversed(lignes):
             v = o.get("resultat_obs")
@@ -211,6 +217,42 @@ class ApiHubEau:
                 continue
             sorties.setdefault(o.get("grandeur_hydro"), []).append(
                 (_en_datetime(o["date_obs"]), v / DIVISEUR))
+        return sorties
+
+    async def _observations_vigicrues(
+        self, code: str, depuis: datetime, cause: ErreurHubEau,
+    ) -> dict[str, list[tuple[datetime, float]]]:
+        """Repli sur Vigicrues quand Hub'Eau ne repond plus.
+
+        Hub'Eau redistribue les mesures du Service central Vigicrues, qui les
+        publie aussi lui-meme, deja en m et en m3/s, horodatees en millisecondes
+        UTC. Le 2026-11-18, Hub'Eau a ete suspendu « pour raison de securite »
+        et servait une page HTML a toutes les requetes ; Vigicrues repondait.
+        Seul le temps reel a cet equivalent : l'historique journalier reste
+        propre a Hub'Eau, et ses references en cache suffisent d'ici son retour.
+        """
+        from datetime import timezone
+        sorties: dict[str, list[tuple[datetime, float]]] = {}
+        for grandeur in (GRANDEUR_HAUTEUR, GRANDEUR_DEBIT):
+            try:
+                rep = await self._obtenir(URL_VIGICRUES, {
+                    "CdStationHydro": code, "GrdSerie": grandeur,
+                    "FormatSortie": "simple",
+                })
+                points = rep["Serie"]["ObssHydro"]
+            except (ErreurHubEau, KeyError, TypeError) as err:
+                if grandeur == GRANDEUR_HAUTEUR:
+                    raise ErreurHubEau(
+                        f"{cause} ; repli Vigicrues : {err!r}") from err
+                continue    # station sans debit publie : la hauteur suffit
+            for ms, v in points:
+                if v is None:
+                    continue
+                d = datetime.fromtimestamp(ms / 1000, tz=timezone.utc)
+                if d >= depuis:
+                    sorties.setdefault(grandeur, []).append((d, float(v)))
+        _LOGGER.info("%s : Hub'Eau indisponible, mesures prises a Vigicrues "
+                     "(%s)", code, cause)
         return sorties
 
     # -- Historique ---------------------------------------------------------

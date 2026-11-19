@@ -3,6 +3,15 @@
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le
 versionnement est [sémantique](https://semver.org/lang/fr/).
 
+## [0.6.1] - 2026-11-19
+
+### Ajouté
+
+- **Repli sur Vigicrues pour les mesures en direct** quand Hub'Eau ne répond
+  pas. Depuis le 2026-11-18, Hub'Eau, suspendu « pour raison de sécurité »,
+  sert une page HTML à toute requête et les entités devenaient indisponibles.
+  Les références restent celles du cache jusqu'au retour de Hub'Eau.
+
 ## [0.6.0] - 2026-10-25
 
 ### Ajouté
